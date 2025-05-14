@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Chrome 浏览器插件开发指南
 
@@ -197,134 +197,16 @@ manifest.json 是插件的核心配置文件，需要包含以下基本信息：
 
 ## 微信读书助手特定规范
 
-### 剪贴板处理规范
-1. 使用 chrome.clipboard API 进行剪贴板操作
-2. 设置合理的检查间隔（建议 500ms 以上）
-3. 对剪贴板内容进行长度限制（建议不超过 1000 字符）
-4. 过滤敏感信息（如密码、token 等）
-5. 实现剪贴板内容变化检测
-   ```javascript
-   /**
-    * 剪贴板监听示例
-    * @param {Function} callback - 剪贴板内容变化时的回调函数
-    */
-   function setupClipboardListener(callback) {
-     let lastContent = '';
-     setInterval(async () => {
-       const content = await navigator.clipboard.readText();
-       if (content !== lastContent) {
-         lastContent = content;
-         callback(content);
-       }
-     }, 500);
-   }
-   ```
-
-### AI 服务调用规范
-1. 设置请求超时时间（建议 10s）
-2. 实现请求重试机制（最多 3 次）
-3. 对请求内容进行长度限制
-4. 实现请求节流（建议间隔 1s 以上）
-5. 缓存常用查询结果
-   ```javascript
-   /**
-    * AI 服务调用示例
-    * @param {string} text - 要查询的文本
-    * @returns {Promise<Object>} AI 服务响应
-    */
-   async function queryAIService(text) {
-     const cacheKey = `ai_cache_${text}`;
-     const cached = await chrome.storage.local.get(cacheKey);
-     if (cached[cacheKey]) return cached[cacheKey];
-
-     try {
-       const response = await fetch('AI_SERVICE_URL', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ text }),
-         timeout: 10000
-       });
-       const result = await response.json();
-       await chrome.storage.local.set({ [cacheKey]: result });
-       return result;
-     } catch (error) {
-       console.error('AI 服务调用失败:', error);
-       throw error;
-     }
-   }
-   ```
-
 ### 用户界面规范
 1. 所有提示信息使用中文
 2. 保持界面简洁，突出核心功能
 3. 提供清晰的操作反馈
 4. 错误提示要友好且具体
-   ```javascript
-   /**
-    * 用户提示示例
-    * @param {string} type - 提示类型（success/error/info）
-    * @param {string} message - 提示信息
-    */
-   function showUserMessage(type, message) {
-     const messages = {
-       success: '操作成功',
-       error: '操作失败',
-       info: '提示信息'
-     };
-     // 实现提示显示逻辑
-   }
-   ```
 
-### 数据安全规范
-1. 不存储用户敏感信息
-2. 定期清理本地缓存
-3. 使用安全的存储方式（chrome.storage.local）
-4. 实现数据加密存储
-   ```javascript
-   /**
-    * 安全存储示例
-    * @param {string} key - 存储键名
-    * @param {any} value - 存储值
-    */
-   async function secureStorage(key, value) {
-     const encrypted = await encryptData(value);
-     await chrome.storage.local.set({ [key]: encrypted });
-   }
-
-   /**
-    * 定期清理缓存
-    */
-   function setupCacheCleanup() {
-     setInterval(async () => {
-       const cache = await chrome.storage.local.get(null);
-       const now = Date.now();
-       for (const [key, value] of Object.entries(cache)) {
-         if (key.startsWith('ai_cache_') && now - value.timestamp > 24 * 60 * 60 * 1000) {
-           await chrome.storage.local.remove(key);
-         }
-       }
-     }, 60 * 60 * 1000); // 每小时检查一次
-   }
-   ```
 
 ### 错误处理规范
-1. 网络请求错误处理
-   ```javascript
-   /**
-    * 网络请求错误处理示例
-    */
-   async function handleNetworkError(error) {
-     if (error.name === 'TimeoutError') {
-       showUserMessage('error', '请求超时，请稍后重试');
-     } else if (error.name === 'NetworkError') {
-       showUserMessage('error', '网络连接失败，请检查网络设置');
-     } else {
-       showUserMessage('error', '服务暂时不可用，请稍后重试');
-     }
-   }
-   ```
 
-2. 剪贴板访问错误处理
+1. 剪贴板访问错误处理
    ```javascript
    /**
     * 剪贴板错误处理示例
@@ -334,22 +216,6 @@ manifest.json 是插件的核心配置文件，需要包含以下基本信息：
        showUserMessage('error', '请允许访问剪贴板权限');
      } else {
        showUserMessage('error', '剪贴板访问失败，请重试');
-     }
-   }
-   ```
-
-3. AI 服务错误处理
-   ```javascript
-   /**
-    * AI 服务错误处理示例
-    */
-   async function handleAIServiceError(error) {
-     if (error.response?.status === 429) {
-       showUserMessage('error', '请求过于频繁，请稍后再试');
-     } else if (error.response?.status === 401) {
-       showUserMessage('error', '服务认证失败，请检查配置');
-     } else {
-       showUserMessage('error', 'AI 服务暂时不可用，请稍后重试');
      }
    }
    ```

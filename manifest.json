@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "微信读书助手",
+  "version": "1.0",
+  "description": "微信读书AI助手，提供解释、消化、兼听等功能",
+  "permissions": [
+    "clipboardRead",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://aip.baidubce.com/*",
+    "https://dashscope.aliyuncs.com/*",
+    "https://api.doubao.com/*",
+    "https://api.deepseek.com/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://weread.qq.com/*"],
+      "js": ["src/utils/config.js", "src/content/content.js"],
+      "css": ["src/content/floating-menu.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/icons/*",
+        "src/ai/service.js",
+        "src/utils/config.esm.js",
+        "src/content/floating-menu.html"
+      ],
+      "matches": ["https://weread.qq.com/*"],
+      "extension_types": ["extension", "content_script"]
+    }
+  ],
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+} 
