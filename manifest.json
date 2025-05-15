@@ -30,7 +30,12 @@
   "content_scripts": [
     {
       "matches": ["https://weread.qq.com/*"],
-      "js": ["src/utils/config.js", "src/content/content.js"],
+      "js": [
+        "src/lib/marked.min.js",
+        "src/utils/config.js",
+        "src/content/floating-menu.js",
+        "src/content/content.js"
+      ],
       "css": ["src/content/floating-menu.css"],
       "run_at": "document_end"
     }

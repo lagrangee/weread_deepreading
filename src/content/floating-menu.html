@@ -1,19 +1,35 @@
 <div class="floating-menu">
-  <div class="menu-header">
-    <div class="menu-title">微信读书助手</div>
-    <button class="menu-close">×</button>
-  </div>
-  
-  <div class="book-info">
-    <div class="book-title"></div>
-    <div class="book-author"></div>
-  </div>
+  <!-- 头部区域 -->
+    <header class="menu-header">
+        <div class="header-main">
+            <div class="menu-title">微信读书助手</div>
+            <div class="header-controls">
+                <button class="menu-button toggle-mode" title="切换显示模式 (T)">
+                    <span class="toggle-text">切换模式(T)</span>
+                </button>
+                <button class="menu-close" title="关闭 (Esc)">×</button>
+            </div>
+        </div>
+        <div class="book-info">
+            <div class="book-title"></div>
+            <div class="book-author"></div>
+        </div>
+        <div class="text-preview"></div>
+        <div class="menu-buttons">
+            <button class="menu-button explain" title="解释 (E)">解释一下(E) </button>
+            <button class="menu-button digest" title="消化 (D)">消化一下(D)</button>
+            <button class="menu-button analyze" title="兼听 (M)">兼听一下(M)</button>
+        </div>
+    </header>
 
-  <div class="text-preview"></div>
+    <!-- 主要内容区域 -->
+    <main class="chat-container">
+        <!-- 消息将动态插入这里 -->
+    </main>
 
-  <div class="menu-buttons">
-    <button class="menu-button explain">解释</button>
-    <button class="menu-button digest">消化</button>
-    <button class="menu-button multi-view">兼听</button>
-  </div>
+    <!-- 底部输入区域 -->
+    <footer class="input-container">
+        <textarea class="chat-input" placeholder="继续对话..." rows="1"></textarea>
+        <button class="menu-button send">发送</button>
+    </footer>
 </div>

@@ -9,5 +9,5 @@ window.CONFIG = {
   
   // DOM 相关
   COPY_BUTTON_CLASS: 'wr_copy',
-
+  MAX_CONTEXT_LENGTH: 2000,
 } 

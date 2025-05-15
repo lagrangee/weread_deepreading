@@ -83,7 +83,7 @@ export class AIService {
    * @param {string} userPrompt - 用户提示词
    * @returns {Promise<string>} AI 响应
    */
-  async chat(systemPrompt, userPrompt) {
+  async request(systemPrompt, userPrompt) {
     try {
       console.log("chat: ", this.provider);
       // 通过 background script 发送请求
@@ -128,7 +128,7 @@ export class AIService {
       book,
       text
     });
-    return this.chat(systemPrompt, userPrompt);
+    return this.request(systemPrompt, userPrompt);
   }
 
   /**
@@ -148,7 +148,7 @@ export class AIService {
       book,
       text
     });
-    return this.chat(systemPrompt, userPrompt);
+    return this.request(systemPrompt, userPrompt);
   }
 
   /**
@@ -168,6 +168,28 @@ export class AIService {
       book,
       text
     });
-    return this.chat(systemPrompt, userPrompt);
+    return this.request(systemPrompt, userPrompt);
+  }
+
+  /**
+   * 聊天功能
+   * @param {string} text - 用户输入的文本
+   * @param {string} author - 作者名
+   * @param {string} book - 书名
+   * @param {string[]} context - 上下文
+   * @returns {Promise<string>} AI 响应
+   */
+  async chat(text, author, book, context) {
+    const systemPrompt = this._replacePromptVariables(CONFIG.PROMPTS.SYSTEM.chat, {
+      author,
+      book
+    });
+    const userPrompt = this._replacePromptVariables(CONFIG.PROMPTS.USER.chat, {
+      author,
+      book,
+      text,
+      context
+    });
+    return this.request(systemPrompt, userPrompt);
   }
 } 

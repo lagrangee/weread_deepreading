@@ -1,154 +1,341 @@
+/**
+ * 浮动菜单样式 - 使用现代CSS布局
+ */
+ 
+ /* inject for inline mode */
+.wr_horizontalReader { width:auto !important;}
+.wr_horizontalReader_app_content { position:relative !important;}
+.readerTopBar { position:absolute !important; }
+
+/* 浮动菜单容器 */
 .floating-menu {
+  position: fixed;
+  top: 10%;
+  right: 20px;
+  width: 400px;
+  height: 600px;
+  min-width: 300px;
+  min-height: 400px;
+  max-width: 80vw;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  &.inline {
+    max-height: 100vh;
+    left:auto !important;
+    right: 0;
+  }
+  &.floating {
+  }
+}
+
+/* 调整大小手柄 */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 11000;
+}
+
+/* 左右调整手柄 */
+.resize-handle.e,
+.resize-handle.w {
+  top: 50%;
+  width: 6px;
+  height: 40px;
+  transform: translateY(-50%);
+}
+
+.resize-handle.e {
+  right: 0px;
+  cursor: e-resize;
+}
+
+.resize-handle.w {
+  left: 0px;
+  cursor: w-resize;
+}
+
+.resize-handle.e::after,
+.resize-handle.w::after {
+  content: '';
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 2px;
+  height: 50px;
+  background: #007AFF;
   transform: translate(-50%, -50%);
-  z-index: 10000;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 16px;
-  min-width: 300px;
-  max-width: 400px;
-  display: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
+/* 左下和右下调整手柄 */
+.resize-handle.se,
+.resize-handle.sw {
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.resize-handle.se {
+  right: 0;
+  cursor: se-resize;
+}
+
+.resize-handle.sw {
+  left: 0;
+  cursor: sw-resize;
+}
+
+.resize-handle.se::after,
+.resize-handle.sw::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #007AFF;
+  border-bottom: 2px solid #007AFF;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.resize-handle.se::after {
+  right: 4px;
+}
+
+.resize-handle.sw::after {
+  left: 4px;
+  transform: scaleX(-1);
+}
+
+/* 悬停效果 */
+.floating-menu:hover .resize-handle::after {
+  opacity: 0.6;
+}
+
+.resize-handle:hover::after {
+  opacity: 1 !important;
+}
+
+/* 头部区域 */
 .menu-header {
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.header-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .menu-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #333333;
+  pointer-events: none;
 }
 
 .menu-close {
   background: none;
   border: none;
+  font-size: 24px;
+  color: #666666;
   cursor: pointer;
-  padding: 4px;
-  color: #666;
-  font-size: 18px;
+  padding: 0 8px;
+  transition: color 0.2s;
+  z-index: 3;
 }
 
 .menu-close:hover {
-  color: #333;
+  color: #333333;
 }
 
+/* 书籍信息 */
 .book-info {
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  pointer-events: none;
+  margin-bottom: 16px;
 }
 
 .book-title {
-  font-size: 14px;
-  color: #333;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333333;
   margin-bottom: 4px;
 }
 
 .book-author {
-  font-size: 12px;
-  color: #666;
+  font-size: 13px;
+  color: #666666;
 }
 
+/* 文本预览 */
 .text-preview {
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #f9f9f9;
-  border-radius: 4px;
+  padding: 12px;
   font-size: 14px;
-  color: #333;
-  line-height: 1.5;
+  line-height: 1.6;
+  color: #444444;
+  background: #f8f9fa;
+  border-radius: 6px;
+  max-height: 100px;
+  overflow-y: auto;
+  margin-bottom: 16px;
 }
 
+/* 按钮组 */
 .menu-buttons {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .menu-button {
   flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  background: #1a73e8;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.menu-button:hover {
-  background: #1557b0;
-}
-
-.menu-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.ai-result {
-  margin-top: 12px;
-  padding: 12px;
-  background: #f0f7ff;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #333;
-}
-
-.ai-result.error {
-  background: #fff0f0;
-  color: #d32f2f;
-}
-
-.result-content {
-  margin-bottom: 8px;
-  white-space: pre-wrap;
-}
-
-.copy-result {
-  display: block;
-  width: 100%;
-  padding: 8px;
-  margin-top: 8px;
-  border: 1px solid #1a73e8;
-  border-radius: 4px;
-  background: white;
-  color: #1a73e8;
+  padding: 8px 16px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.copy-result:hover {
-  background: #f0f7ff;
+.menu-button:hover {
+  background: #f0f0f0;
+  border-color: #cccccc;
 }
 
-.floating-message {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  border-radius: 4px;
+.menu-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 主要内容区域 */
+.chat-container {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 消息样式 */
+.message {
+  max-width: 85%;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: #007AFF;
+  color: #ffffff;
+  border-radius: 16px 16px 4px 16px;
+}
+
+.message.ai {
+  align-self: flex-start;
+  background: #f0f0f0;
+  color: #333333;
+  border-radius: 16px 16px 16px 4px;
+}
+
+/* 底部输入区域 */
+.input-container {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  background: #ffffff;
+  border-top: 1px solid #eeeeee;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  padding: 8px 12px;
+  border: 1px solid #dddddd;
+  border-radius: 6px;
   font-size: 14px;
-  animation: fadeInOut 2s ease-in-out;
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
 }
 
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translate(-50%, 20px); }
-  20% { opacity: 1; transform: translate(-50%, 0); }
-  80% { opacity: 1; transform: translate(-50%, 0); }
-  100% { opacity: 0; transform: translate(-50%, -20px); }
+.chat-input:focus {
+  outline: none;
+  border-color: #007AFF;
+}
+
+.menu-button.send {
+  flex: 0 0 auto;
+  padding: 8px 20px;
+  background: #007AFF;
+  color: #ffffff;
+  border: none;
+}
+
+.menu-button.send:hover {
+  background: #0056b3;
+}
+
+/* 滚动条样式 */
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .floating-menu {
+    width: 90vw;
+    height: 80vh;
+    right: 5vw;
+    top: 10vh;
+  }
+}
+
+/* 确保所有内容可选择 */
+.floating-menu,
+.floating-menu * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
 } 
