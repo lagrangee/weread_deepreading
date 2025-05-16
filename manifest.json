@@ -29,7 +29,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://weread.qq.com/*"],
+      "matches": ["https://weread.qq.com/web/reader/*"],
       "js": [
         "src/lib/marked.min.js",
         "src/utils/config.js",

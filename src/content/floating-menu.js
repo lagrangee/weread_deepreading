@@ -16,6 +16,8 @@ class FloatingMenu {
   #isDragging = false;
   /** @type {boolean} 是否正在调整大小 */
   #isResizing = false;
+  /** @type {boolean} 是否显示 */
+  #isShowing = false;
   /** @type {boolean} 是否为内嵌模式 */
   #isInlineMode = null;
   /** @type {string|null} 调整方向 */
@@ -40,7 +42,7 @@ class FloatingMenu {
    * 获取单例实例
    * @returns {FloatingMenu}
    */
-  static getInstance() {
+  static getInstance() { // ugly, need to be refactored
     return FloatingMenu.instance;
   }
 
@@ -78,26 +80,37 @@ class FloatingMenu {
     this.#authorName = authorName;
 
     // 初始化各项功能
-    this.initDrag();
-    this.initShortcuts();
-    this.initMarkdown();
-    this.initChat();
-    this.initResizeHandler();
-    this.bindEvents();
+    this.initLocalSettings(); // 初始化本地参数
+    this.initDrag(); // 初始化拖拽功能
+    this.initShortcuts(); // 初始化快捷键
+    this.initMarkdown(); // 初始化 Markdown 渲染
+    this.initChat(); // 初始化聊天功能
+    this.initResizeHandler(); // 初始化窗口大小调整功能
+    this.bindEvents(); // 绑定事件处理器
+    this.interceptEvents(); // 拦截必要事件, 实现正常的文字选中和复制
+    this.setInitialPosition(); // 设置初始位置
+  }
 
-    // 设置初始位置
-    this.setInitialPosition();
+  /** 初始化本地参数 */
+  initLocalSettings() {
+    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+    if(!settings) {
+      settings = {
+        isInlineMode:true,
+        isLastTimeShowing:false,
+      };
+    }
+    localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
   }
 
   /**
    * 设置初始位置
    */
   setInitialPosition() {
-
-    if( this.loadLastMode() === 'inline') {
-      this.switchToInline();
-    } else {
-      this.switchToFloating();
+    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+    let mode = settings.isInlineMode ? 'inline' : 'floating';
+    if( settings.isLastTimeShowing ) {
+      this.show({mode:mode});
     }
   }
 
@@ -105,8 +118,7 @@ class FloatingMenu {
    * 初始化拖拽功能
    */
   initDrag() {
-    const header = this.element.querySelector('.menu-header');
-    
+    const header = this.element.querySelector('.header-main');
     header.addEventListener('mousedown', this.handleDragStart);
   }
 
@@ -175,7 +187,7 @@ class FloatingMenu {
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
 
-    this.saveSettings();
+    this.savePositonSettings();
   }
 
   /**
@@ -307,12 +319,14 @@ class FloatingMenu {
     document.removeEventListener('mousemove', this.handleResizeMove);
     document.removeEventListener('mouseup', this.handleResizeEnd);
 
-    this.resizeBodyWidth();
-    this.saveSettings();
+    if (this.#isInlineMode) this.resizeBodyWidth();
+    this.savePositonSettings();
   }
 
   initShortcuts() {
     document.addEventListener('keydown', (e) => {
+      // 如果未显示，不触发快捷键
+      if ( ! this.#isShowing ) return;
       // 如果是在输入框中，不触发快捷键
       if (e.target.matches('input, textarea')) return;
 
@@ -330,7 +344,7 @@ class FloatingMenu {
           this.element.querySelector('.menu-button.toggle-mode').click();
           break;
         case 'escape':
-          this.hide();
+          if ( ! this.#isInlineMode ) this.hide();
           break;
       }
     });
@@ -425,10 +439,43 @@ class FloatingMenu {
     container.scrollTop = container.scrollHeight;
   }
 
+
+  /**
+   * 拦截必要事件
+   */
+  interceptEvents() {
+    /* 拦截选中文本 */
+    this.element.addEventListener('selectstart', (e) => {
+        e.stopPropagation();
+    });
+    /* 拦截右键菜单 */
+    this.element.addEventListener('contextmenu', (e) => {
+      e.stopPropagation();
+    });
+    /* 拦截 ctrl+c */
+    this.element.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && (e.key === 'c' || e.key === 'a')) {
+        e.stopPropagation();
+      }
+    });
+    // 处理复制事件
+    document.addEventListener('copy', function(e) {
+      const selection = window.getSelection();
+      const selectedText = selection.toString();
+      
+      if (selectedText && e.target.closest('.floating-menu')) {
+        e.preventDefault(); // 阻止默认复制行为
+        e.clipboardData.setData('text/plain', selectedText); // 手动设置剪贴板内容
+        e.stopPropagation(); // 阻止第三方代码修改
+      }
+    }, true);
+  }
+
   /**
    * 绑定事件处理器
    */
   bindEvents() {
+
     // 关闭按钮
     const closeButton = this.element.querySelector('.menu-close');
     closeButton.addEventListener('click', () => this.hide());
@@ -450,6 +497,8 @@ class FloatingMenu {
 
     explainButton.addEventListener('click', async () => {
       try {
+        explainButton.classList.add('loading');
+        explainButton.disabled = true;
         const result = await AIService.getInstance().explain(
           this.#currentText,
           this.#authorName,
@@ -459,11 +508,16 @@ class FloatingMenu {
       } catch (error) {
         console.error('解释失败:', error);
         this.showError('解释失败，请重试');
+      } finally {
+        explainButton.classList.remove('loading');
+        explainButton.disabled = false;
       }
     });
 
     digestButton.addEventListener('click', async () => {
       try {
+        digestButton.classList.add('loading');
+        digestButton.disabled = true;
         const result = await AIService.getInstance().digest(
           this.#currentText,
           this.#authorName,
@@ -473,11 +527,16 @@ class FloatingMenu {
       } catch (error) {
         console.error('消化失败:', error);
         this.showError('消化失败，请重试');
+      } finally {
+        digestButton.classList.remove('loading');
+        digestButton.disabled = false;
       }
     });
 
     analyzeButton.addEventListener('click', async () => {
       try {
+        analyzeButton.classList.add('loading');
+        analyzeButton.disabled = true;
         const result = await AIService.getInstance().analyze(
           this.#currentText,
           this.#authorName,
@@ -487,20 +546,25 @@ class FloatingMenu {
       } catch (error) {
         console.error('兼听失败:', error);
         this.showError('兼听失败，请重试');
+      } finally {
+        analyzeButton.classList.remove('loading');
+        analyzeButton.disabled = false;
       }
     });
   }
 
   /**
    * 显示菜单
-   * @param {string} text - 选中的文本
+   * @param {Object} options - 选项
+   * @param {string} options.text - 选中的文本
+   * @param {string} options.mode - 模式
    */
-  show(text) {
-    this.#currentText = text;
-    
+  show(options) {
+    this.#currentText = options.text;
+
     // 更新预览文本
     const preview = this.element.querySelector('.text-preview');
-    preview.textContent = text;
+    preview.textContent = this.#currentText;
     
     // 更新书籍信息
     const bookTitle = this.element.querySelector('.book-title');
@@ -509,11 +573,24 @@ class FloatingMenu {
     bookAuthor.textContent = this.#authorName;
     
     // 显示菜单
-    this.element.style.display = 'flex';
-    
-    // 聚焦输入框
-    const input = this.element.querySelector('.chat-input');
-    input.focus();
+    this.element.classList.remove('hide');
+    this.element.classList.add('show');
+
+    let mode;
+    if(options.mode) {
+      mode = options.mode;
+    } else { // 如果未指定模式，则根据本地存储中的设置
+      const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+      mode = settings.isInlineMode ? 'inline' : 'floating';
+    }
+
+    if( mode === 'inline') {
+      this.switchToInline({resize:!this.#isShowing});
+    } else {
+      this.switchToFloating({resize:false});
+    }
+
+    this.#isShowing = true;
   }
 
   /**
@@ -568,24 +645,35 @@ class FloatingMenu {
 
   /**
    * 隐藏菜单
+   * @param {Object} options - 选项
+   * @param {boolean} options.needSaveSettings - 是否保存设置
    */
-  hide() {
-    this.element.style.display = 'none';
-    this.#currentText = '';
+  hide(options) {
+    const defaults = {needSaveSettings:true};
+    const settings = Object.assign({}, defaults, options);
+
+    this.#isShowing = false;
+    this.element.classList.remove('show');
+    this.element.classList.add('hide');
+    if (settings.needSaveSettings) this.saveModeSettings({closed:true, isInlineMode:this.#isInlineMode});
+    if (this.#isInlineMode)  this.resetBodyWidth();
   }
 
   /**
    * 切换到悬浮模式
+   * @param {Object} options - 选项
+   * @param {boolean} options.resize - 是否调整 body 宽度
    */
-  switchToFloating() {
-    if (this.#isInlineMode === false) return;
+  switchToFloating(options) {
+    const defaults = {resize:true};
+    const settings = Object.assign({}, defaults, options);
 
     this.#isInlineMode = false;
     
     this.element.classList.remove('inline');
     this.element.classList.add('floating');
 
-    this.resetBodyWidth();
+    if(settings.resize) this.resetBodyWidth();
     this.loadSettings('floating');
     
     // 更新按钮文本
@@ -593,54 +681,65 @@ class FloatingMenu {
     const toggleText = toggleButton.querySelector('.toggle-text');
     toggleText.textContent = '内嵌模式(T)';
 
-    this.saveSettings();
+    this.saveModeSettings({isInlineMode:false});
   }
 
   /**
    * 切换到内嵌模式
+   * @param {Object} options - 选项
+   * @param {boolean} options.resize - 是否调整 body 宽度
    */
-  switchToInline() {
-      if (this.#isInlineMode) return;
+  switchToInline(options) {
+    const defaults = {resize:true};
+    const settings = Object.assign({}, defaults, options);
 
-      this.#isInlineMode = true;
-      
-      this.element.classList.remove('floating');
-      this.element.classList.add('inline');
+    this.#isInlineMode = true;
+    
+    this.element.classList.remove('floating');
+    this.element.classList.add('inline');
 
-      this.loadSettings('inline');
-      this.resizeBodyWidth();
-      
-      // 更新按钮文本
-      const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
-      const toggleText = toggleButton.querySelector('.toggle-text');
-      toggleText.textContent = '悬浮模式(T)';
+    this.loadSettings('inline');
+    if(settings.resize) this.resizeBodyWidth();
+    
+    // 更新按钮文本
+    const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
+    const toggleText = toggleButton.querySelector('.toggle-text');
+    toggleText.textContent = '悬浮模式(T)';
 
-      this.saveSettings();
+    this.saveModeSettings({isInlineMode:true});
   }
 
   /**
-   * resize body width in inline mode
+   * resize body
    */
   resizeBodyWidth() {
-    if(this.#isInlineMode) {
-      document.body.style.width = window.innerWidth - this.element.offsetWidth + 'px';
-      window.dispatchEvent(new Event('resize'));
-    }
+    document.body.style.width = window.innerWidth - this.element.offsetWidth + 'px';
+    window.dispatchEvent(new Event('resize'));
   }
 
   /**
-   * reset body width in floating mode
+   * reset body 
    */
   resetBodyWidth() {
-    if(!this.#isInlineMode) {
-      document.body.style.width = '100vw';
-      window.dispatchEvent(new Event('resize'));
-    }
+    document.body.style.width = '100vw';
+    window.dispatchEvent(new Event('resize'));
   }
 
   /**
-   * 将当前设置信息保存到本地存储
-   * isInlineMode: 是否为内嵌模式
+   * 保存模式设置
+   * @param {boolean} closed - 是否关闭
+   */
+  saveModeSettings({closed=false, isInlineMode=true}) {
+    let settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+
+    settings.isInlineMode = isInlineMode;
+    settings.isLastTimeShowing = !closed;
+
+    localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+  }
+
+  /**
+   * 将当前位置信息保存到本地存储
    * inlineMenuWidth: 内嵌模式菜单宽度
    * inlineMenuHeight: 内嵌模式菜单高度
    * inlineMenuTop: 内嵌模式菜单顶部位置
@@ -649,21 +748,8 @@ class FloatingMenu {
    * floatingMenuTop: 悬浮模式菜单顶部位置
    * floatingMenuLeft: 悬浮模式菜单左侧位置
    */
-  saveSettings() {
+  savePositonSettings() {
     let settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-    if (!settings) {
-      settings = {
-        isInlineMode: false,
-        inlineMenuWidth: 0,
-        inlineMenuHeight: 0,
-        inlineMenuTop: 0,
-        floatingMenuWidth: 0,
-        floatingMenuHeight: 0,
-        floatingMenuTop: 0, 
-        floatingMenuLeft: 0,
-      };
-    }
-    settings.isInlineMode = this.#isInlineMode;
     if (this.#isInlineMode) {
       settings.inlineMenuWidth = this.element.offsetWidth;
       settings.inlineMenuHeight = this.element.offsetHeight;
@@ -678,17 +764,6 @@ class FloatingMenu {
   }
 
 
-  /**
-   * 从本地存储中获取上一次的模式
-   * @returns {'inline' | 'floating'}
-   */
-  loadLastMode() {
-    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-    if(!settings) {
-      return 'floating';
-    }
-    return settings.isInlineMode ? 'inline' : 'floating';
-  }
   /**
    * 从本地存储中获取设置信息
    */
