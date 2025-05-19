@@ -65,6 +65,7 @@ class FloatingMenu {
       document.body.appendChild(menu);
       FloatingMenu.instance = new FloatingMenu(menu, bookName, authorName);
     }
+    console.log(`${window.CONFIG.LOG_PREFIX} 浮动菜单创建成功`);
     return FloatingMenu.instance;
   }
 
@@ -75,7 +76,9 @@ class FloatingMenu {
    * @param {string} authorName - 作者名
    */
   constructor(element, bookName, authorName) {
-    this.element = element;
+    this.element = element.children[0];
+    this.helpElement = element.children[1];
+    this.pinElement = element.children[2];
     this.#bookName = bookName;
     this.#authorName = authorName;
 
@@ -124,8 +127,8 @@ class FloatingMenu {
    * 初始化拖拽功能
    */
   initDrag() {
-    const header = this.element.querySelector('.header-main');
-    header.addEventListener('mousedown', this.handleDragStart);
+    const bar = this.element.querySelector('.bar');
+    bar.addEventListener('mousedown', this.handleDragStart);
   }
 
   /**
@@ -366,7 +369,7 @@ class FloatingMenu {
           this.element.querySelector('.menu-button.help').click();
           break;
         case 'escape':
-          const helpModal = this.element.querySelector('.help-modal');
+          const helpModal = this.helpElement;
           if (!helpModal.classList.contains('hide')) {
             helpModal.classList.add('hide');
           } else if (!this.#isInlineMode) {
@@ -503,6 +506,10 @@ class FloatingMenu {
    */
   bindEvents() {
 
+    this.pinElement.addEventListener('click', () => {
+      this.show({});
+    });
+
     // 关闭按钮
     const closeButton = this.element.querySelector('.menu-close');
     closeButton.addEventListener('click', () => this.hide());
@@ -612,8 +619,9 @@ class FloatingMenu {
 
     // 帮助按钮
     const helpButton = this.element.querySelector('.menu-button.help');
-    const helpModal = this.element.querySelector('.help-modal');
+    const helpModal = this.helpElement;
     const helpClose = helpModal.querySelector('.help-close');
+    console.log(`${window.CONFIG.LOG_PREFIX} 浮动菜单创建成功`, helpButton, helpModal, helpClose);
 
     const showHelp = () => {
       helpModal.classList.remove('hide');
@@ -639,7 +647,7 @@ class FloatingMenu {
    * @param {string} options.mode - 模式
    */
   show(options) {
-    this.#currentText = options.text;
+    if(options && options.text) this.#currentText = options.text;
 
     // 更新预览文本
     const preview = this.element.querySelector('.text-preview');
@@ -652,8 +660,8 @@ class FloatingMenu {
     bookAuthor.textContent = this.#authorName;
     
     // 显示菜单
-    this.element.classList.remove('hide');
-    this.element.classList.add('show');
+    this.element.parentElement.classList.remove('hide');
+    this.element.parentElement.classList.add('show');
 
     let mode;
     if(options.mode) {
@@ -732,8 +740,8 @@ class FloatingMenu {
     const settings = Object.assign({}, defaults, options);
 
     this.#isShowing = false;
-    this.element.classList.remove('show');
-    this.element.classList.add('hide');
+    this.element.parentElement.classList.remove('show');
+    this.element.parentElement.classList.add('hide');
     if (settings.needSaveSettings) this.saveModeSettings({closed:true, isInlineMode:this.#isInlineMode});
     if (this.#isInlineMode)  this.resetBodyWidth();
   }

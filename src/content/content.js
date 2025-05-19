@@ -177,5 +177,5 @@ function initialize() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialize);
 } else {
-  setTimeout(initialize, 100); //even 0 works, but directly call initialize() does not work on coverpagelistener!
+  setTimeout(initialize, 500); //even 0 works, but directly call initialize() does not work on coverpagelistener!
 }
