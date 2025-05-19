@@ -89,18 +89,24 @@ class FloatingMenu {
     this.bindEvents(); // 绑定事件处理器
     this.interceptEvents(); // 拦截必要事件, 实现正常的文字选中和复制
     this.setInitialPosition(); // 设置初始位置
+    this.loadFontSettings(); // 加载字体大小设置
   }
 
-  /** 初始化本地参数 */
+  /**
+   * 初始化本地参数
+   */
   initLocalSettings() {
-    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-    if(!settings) {
-      settings = {
-        isInlineMode:true,
-        isLastTimeShowing:false,
-      };
-    }
+    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings')) || {
+      isInlineMode: true,
+      isLastTimeShowing: false,
+      isDarkMode: false
+    };
     localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+    
+    // 应用暗色模式设置
+    if (settings.isDarkMode) {
+      this.element.classList.add('dark-mode');
+    }
   }
 
   /**
@@ -323,18 +329,31 @@ class FloatingMenu {
     this.savePositonSettings();
   }
 
+  /**
+   * 初始化快捷键
+   */
   initShortcuts() {
     document.addEventListener('keydown', (e) => {
       // 如果未显示，不触发快捷键
-      if ( ! this.#isShowing ) return;
+      if (!this.#isShowing) return;
       // 如果是在输入框中，不触发快捷键
       if (e.target.matches('input, textarea')) return;
 
       switch(e.key.toLowerCase()) {
+        case 'a':
+          if (e.key === 'a') {
+            this.element.querySelector('.menu-button.font-adjust.decrease').click();
+          } else {
+            this.element.querySelector('.menu-button.font-adjust.increase').click();
+          }
+          break;
+        case 'd':
+          this.element.querySelector('.menu-button.theme-toggle').click();
+          break;
         case 'e':
           this.element.querySelector('.menu-button.explain').click();
           break;
-        case 'd':
+        case 'x':
           this.element.querySelector('.menu-button.digest').click();
           break;
         case 'm':
@@ -343,8 +362,16 @@ class FloatingMenu {
         case 't':
           this.element.querySelector('.menu-button.toggle-mode').click();
           break;
+        case '?':
+          this.element.querySelector('.menu-button.help').click();
+          break;
         case 'escape':
-          if ( ! this.#isInlineMode ) this.hide();
+          const helpModal = this.element.querySelector('.help-modal');
+          if (!helpModal.classList.contains('hide')) {
+            helpModal.classList.add('hide');
+          } else if (!this.#isInlineMode) {
+            this.hide();
+          }
           break;
       }
     });
@@ -551,6 +578,58 @@ class FloatingMenu {
         analyzeButton.disabled = false;
       }
     });
+
+    // 字体调节按钮
+    const increaseButton = this.element.querySelector('.menu-button.font-adjust.increase');
+    const decreaseButton = this.element.querySelector('.menu-button.font-adjust.decrease');
+    
+    increaseButton.addEventListener('click', () => {
+      let fontSize = parseFloat(this.element.style.fontSize);
+      if (fontSize < 24) { // 最大字体限制
+        fontSize += 1;
+        this.element.style.fontSize = fontSize + 'px';
+        this.saveFontSettings(fontSize);
+      }
+    });
+
+    decreaseButton.addEventListener('click', () => {
+      let fontSize = parseFloat(this.element.style.fontSize);
+      if (fontSize > 12) { // 最小字体限制
+        fontSize -= 1;
+        this.element.style.fontSize = fontSize + 'px';
+        this.saveFontSettings(fontSize);
+      }
+    });
+
+    // 暗色模式切换
+    const themeToggle = this.element.querySelector('.menu-button.theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      this.element.classList.toggle('dark-mode');
+      const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+      settings.isDarkMode = this.element.classList.contains('dark-mode');
+      localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+    });
+
+    // 帮助按钮
+    const helpButton = this.element.querySelector('.menu-button.help');
+    const helpModal = this.element.querySelector('.help-modal');
+    const helpClose = helpModal.querySelector('.help-close');
+
+    const showHelp = () => {
+      helpModal.classList.remove('hide');
+    };
+
+    const hideHelp = () => {
+      helpModal.classList.add('hide');
+    };
+
+    helpButton.addEventListener('click', showHelp);
+    helpClose.addEventListener('click', hideHelp);
+    helpModal.addEventListener('click', (e) => {
+      if (e.target === helpModal) {
+        hideHelp();
+      }
+    });
   }
 
   /**
@@ -723,6 +802,15 @@ class FloatingMenu {
   resetBodyWidth() {
     document.body.style.width = '100vw';
     window.dispatchEvent(new Event('resize'));
+  }
+
+  saveFontSettings(fontSize) {
+    localStorage.setItem('floatingMenuFontSize', fontSize);
+  }
+
+  loadFontSettings() {
+    const fontSize = parseFloat(localStorage.getItem('floatingMenuFontSize')) || 16;
+    this.element.style.fontSize = fontSize + 'px';
   }
 
   /**

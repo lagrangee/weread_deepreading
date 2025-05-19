@@ -3,9 +3,28 @@
  */
  
  /* inject for inline mode */
-.wr_horizontalReader { width:auto !important;}
-.wr_horizontalReader_app_content { position:relative !important;}
-.readerTopBar { position:absolute !important; }
+.wr_horizontalReader { 
+  width:auto !important;
+  .wr_horizontalReader_app_content { position:relative !important;}
+  .readerTopBar { position:absolute !important; }
+}
+
+/* inject for single column mode */
+.routerView > .readerContent {
+  position:relative !important;
+  overflow:visible !important;
+  /* contain: paint; */
+}
+.app_content + .readerControls {
+  position:sticky !important;
+  top:auto !important;
+  bottom: 100px !important;
+  margin: auto !important;
+  left:auto !important;
+  transform:translateX(550px) !important;
+}
+
+/* inject end */
 
 /* 浮动菜单容器 */
 .floating-menu {
@@ -26,6 +45,7 @@
   overflow: hidden;
   z-index: 10000;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px; /* 基础字体大小 */
   &.hide {
     display: none;
   }
@@ -33,12 +53,16 @@
     display: flex;
   }
   &.inline {
+    min-width: 600px;
     max-height: 100vh;
     height: 100vh !important; /* 去掉可高度 resize */
     left:auto !important;
     right: 0;
   }
   &.floating {
+  }
+  * {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
   }
 }
 
@@ -158,7 +182,7 @@
 }
 
 .menu-title {
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   color: #333333;
 }
@@ -166,12 +190,18 @@
 .menu-close {
   background: none;
   border: none;
-  font-size: 24px;
   color: #666666;
   cursor: pointer;
-  padding: 0 8px;
   transition: color 0.2s;
   z-index: 3;
+  height: 2em;  /* 与其他按钮保持一致的高度 */
+  width: 2em;  /* 保持正方形 */
+  padding: 0;  /* 移除内边距 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+  line-height: 1;
 }
 
 .menu-close:hover {
@@ -180,25 +210,25 @@
 
 /* 书籍信息 */
 .book-info {
-  margin-bottom: 16px;
+  margin-bottom: auto;
 }
 
 .book-title {
-  font-size: 15px;
+  font-size: 0.9375em;  /* 15px -> 0.9375em */
   font-weight: 600;
   color: #333333;
   margin-bottom: 4px;
 }
 
 .book-author {
-  font-size: 13px;
+  font-size: 0.8125em;  /* 13px -> 0.8125em */
   color: #666666;
 }
 
 /* 文本预览 */
 .text-preview {
   padding: 12px;
-  font-size: 14px;
+  font-size: 0.875em;  /* 14px -> 0.875em */
   line-height: 1.6;
   color: #444444;
   background: #f8f9fa;
@@ -221,7 +251,7 @@
   border-radius: 6px;
   background: #ffffff;
   color: #333333;
-  font-size: 14px;
+  font-size: 0.875em;  /* 14px -> 0.875em */
   cursor: pointer;
   transition: all 0.2s;
   span.loading {
@@ -280,10 +310,11 @@
 /* 消息样式 */
 .message {
   max-width: 85%;
-  padding: 10px 16px;
-  margin-bottom: 16px;
-  border-radius: 12px;
-  line-height: 1.5;
+  padding: 0.75em;
+  margin: 0.5em;
+  border-radius: 0.5em;
+  font-size: 0.875em;  /* 14px -> 0.875em */
+  line-height: 1.6;
   word-break: break-word;
 }
 
@@ -313,15 +344,15 @@
 
 .chat-input {
   flex: 1;
-  min-height: 40px;
-  max-height: 120px;
-  padding: 8px 12px;
+  width: 100%;
+  padding: 0.75em;
   border: 1px solid #dddddd;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 0.5em;
+  font-size: 0.875em;  /* 14px -> 0.875em */
   line-height: 1.5;
   resize: none;
-  overflow-y: auto;
+  outline: none;
+  transition: border-color 0.2s;
 }
 
 .chat-input:focus {
@@ -377,4 +408,207 @@
   -webkit-user-select: text !important;
   -moz-user-select: text !important;
   -ms-user-select: text !important;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+}
+
+/* 所有 header 中的按钮基础样式 */
+.header-controls .menu-button {
+  height: 2em;  /* 统一高度 */
+  padding: 0 0.75em;  /* 左右padding统一 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;  /* 防止文字换行 */
+  flex: 0 0 auto;  /* 不伸缩，保持自然宽度 */
+  min-width: 0;  /* 覆盖之前的 min-width 设置 */
+}
+
+/* 字体调节按钮特殊样式 */
+.menu-button.font-adjust {
+  padding: 0 0.5em;
+  min-width: 2em;
+}
+
+.menu-button.font-adjust.increase span {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.menu-button.font-adjust.decrease span {
+  font-size: 0.9em;
+}
+
+/* 关闭按钮特殊样式 */
+.menu-close {
+  height: 2em;  /* 与其他按钮保持一致的高度 */
+  width: 2em;  /* 保持正方形 */
+  padding: 0;  /* 移除内边距 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+/* 主题切换按钮样式 */
+.menu-button.theme-toggle {
+  position: relative;
+}
+
+.theme-icon.light {
+  display: none;
+}
+
+.theme-icon.dark {
+  display: inline;
+}
+
+/* 暗色模式样式 */
+.floating-menu.dark-mode {
+  background: #1a1a1a;
+  color: #ffffff;
+
+  .menu-header, .chat-container, .input-container {
+    background: #2d2d2d;
+    border-bottom-color: #3d3d3d;
+  }
+  .input-container {
+    border-top-color: #3d3d3d;
+  }
+
+  .menu-title,
+  .book-title {
+    color: #ffffff;
+  }
+
+  .book-author {
+    color: #b0b0b0;
+  }
+
+  .text-preview {
+    background: #2d2d2d;
+    color: #ffffff;
+  }
+
+  .menu-button {
+    background: #2d2d2d;
+    border-color: #3d3d3d;
+    color: #ffffff;
+
+    &:hover {
+      background: #3d3d3d;
+    }
+  }
+
+  .theme-icon {
+    &.light {
+      display: inline;
+    }
+    &.dark {
+      display: none;
+    }
+  }
+
+  .message.ai {
+    background: #2d2d2d;
+    color: #ffffff;
+  }
+  
+  .message.user { 
+    background: rgb(70,122,200);
+  }
+
+  .chat-input {
+    background: #2d2d2d;
+    border-color: #3d3d3d;
+    color: #ffffff;
+
+    &:focus {
+      border-color: #4d4d4d;
+    }
+  }
+}
+
+/* 帮助弹窗样式 */
+.help-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+}
+
+.help-modal.hide {
+  display: none;
+}
+
+.help-content {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2em;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.floating-menu.dark-mode .help-content {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.help-content h2 {
+  margin: 0 0 1em;
+  font-size: 1.2em;
+  text-align: center;
+}
+
+.shortcut-list {
+  display: grid;
+  gap: 1em;
+}
+
+.shortcut-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1em;
+  align-items: center;
+}
+
+.shortcut-item .key {
+  background: #f0f0f0;
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  text-align: center;
+  font-family: monospace;
+}
+
+.floating-menu.dark-mode .shortcut-item .key {
+  background: #2d2d2d;
+}
+
+.help-close {
+  display: block;
+  margin: 2em auto 0;
+  padding: 0.5em 2em;
+  border: none;
+  border-radius: 4px;
+  background: #007AFF;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.help-close:hover {
+  background: #0056b3;
 } 
