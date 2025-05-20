@@ -38,6 +38,11 @@ class FloatingMenu {
   #resizeTimeout = null;
   /** @type {number} 消息防抖计时器ID */
   #messageTimeout = null;
+  /** @type {number} 移动阈值 */
+  #moveThreshold = 5;
+  /** @type {boolean} 是否超过移动阈值 */
+  #hasMoved = false;
+
   /**
    * 获取单例实例
    * @returns {FloatingMenu}
@@ -65,7 +70,6 @@ class FloatingMenu {
       document.body.appendChild(menu);
       FloatingMenu.instance = new FloatingMenu(menu, bookName, authorName);
     }
-    console.log(`${window.CONFIG.LOG_PREFIX} 浮动菜单创建成功`);
     return FloatingMenu.instance;
   }
 
@@ -85,6 +89,7 @@ class FloatingMenu {
     // 初始化各项功能
     this.initLocalSettings(); // 初始化本地参数
     this.initDrag(); // 初始化拖拽功能
+    this.initPinDrag(); // 初始化 pin 拖拽功能
     this.initShortcuts(); // 初始化快捷键
     this.initMarkdown(); // 初始化 Markdown 渲染
     this.initChat(); // 初始化聊天功能
@@ -92,31 +97,148 @@ class FloatingMenu {
     this.bindEvents(); // 绑定事件处理器
     this.interceptEvents(); // 拦截必要事件, 实现正常的文字选中和复制
     this.setInitialPosition(); // 设置初始位置
-    this.loadFontSettings(); // 加载字体大小设置
+  }
+
+  /**
+   * 初始化 pin 拖拽功能
+   */
+  initPinDrag() {
+    this.pinElement.addEventListener('mousedown', this.handlePinDragStart);
+  }
+
+  /**
+   * 处理 pin 拖拽开始
+   * @param {MouseEvent} e 
+   */
+  handlePinDragStart = (e) => {
+
+    document.addEventListener('mousemove', this.handlePinDragMove);
+    document.addEventListener('mouseup', this.handlePinDragEnd);
+
+    this.#isDragging = true;
+    this.#hasMoved = false;
+    const rect = this.pinElement.getBoundingClientRect();
+    
+    this.#startX = e.clientX;
+    this.#startY = e.clientY;
+    this.#elementX = rect.left;
+    this.#elementY = rect.top;
+    
+    this.pinElement.classList.add('dragging');
+  }
+
+  /**
+   * 处理 pin 拖拽移动
+   * @param {MouseEvent} e 
+   */
+  handlePinDragMove = (e) => {
+    if (!this.#isDragging) return;
+    
+    const deltaX = e.clientX - this.#startX;
+    const deltaY = e.clientY - this.#startY;
+    
+    // 检查是否超过移动阈值
+    if (!this.#hasMoved && (Math.abs(deltaX) > this.#moveThreshold || Math.abs(deltaY) > this.#moveThreshold)) {
+      this.#hasMoved = true;
+    }
+    
+    // 如果没有超过移动阈值，不进行移动
+    if (!this.#hasMoved) return;
+    
+    // 计算新位置
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const rect = this.pinElement.getBoundingClientRect();
+    
+    // 计算相对于右边和底部的距离
+    const right = vw - (this.#elementX + deltaX + rect.width);
+    const bottom = vh - (this.#elementY + deltaY + rect.height);
+    
+    // 边界检查
+    const minRight = 0;
+    const minBottom = 0;
+    const maxRight = vw - rect.width;
+    const maxBottom = vh - rect.height;
+    
+    this.pinElement.style.right = `${Math.min(Math.max(right, minRight), maxRight)}px`;
+    this.pinElement.style.bottom = `${Math.min(Math.max(bottom, minBottom), maxBottom)}px`;
+    this.pinElement.style.left = 'auto';
+    this.pinElement.style.top = 'auto';
+  }
+
+  /**
+   * 处理 pin 拖拽结束
+   */
+  handlePinDragEnd = (e) => {
+    if (!this.#isDragging) return;
+
+    // 如果超过了移动阈值，说明是拖拽操作
+    if (this.#hasMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      // 保存 pin 位置
+      this.savePinPosition();
+    } else {
+      // 如果没有超过移动阈值，触发点击事件
+      this.show({});
+    }
+    
+    this.#isDragging = false;
+    this.#hasMoved = false;
+    this.pinElement.classList.remove('dragging');
+
+    document.removeEventListener('mousemove', this.handlePinDragMove);
+    document.removeEventListener('mouseup', this.handlePinDragEnd);
+  }
+
+  /**
+   * 保存 pin 位置到本地存储
+   */
+  savePinPosition() {
+    const rect = this.pinElement.getBoundingClientRect();
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    
+    this._saveSettings({pinPosition:{
+      right: vw - rect.right,
+      bottom: vh - rect.bottom
+    }});
+  }
+
+  /**
+   * 从本地存储加载 pin 位置
+   */
+  loadPinPosition() {
+    const settings = this._loadSettings();
+    if (settings.pinPosition) {
+      this.pinElement.style.right = `${settings.pinPosition.right}px`;
+      this.pinElement.style.bottom = `${settings.pinPosition.bottom}px`;
+      this.pinElement.style.left = 'auto';
+      this.pinElement.style.top = 'auto';
+    }
   }
 
   /**
    * 初始化本地参数
    */
   initLocalSettings() {
-    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings')) || {
-      isInlineMode: true,
-      isLastTimeShowing: false,
-      isDarkMode: false
-    };
-    localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+    const settings = this._loadSettings();
     
     // 应用暗色模式设置
     if (settings.isDarkMode) {
       this.element.classList.add('dark-mode');
     }
+
+    // 加载 pin 位置
+    this.loadPinPosition();
+    this.loadFontSettings();
   }
 
   /**
    * 设置初始位置
    */
   setInitialPosition() {
-    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+    const settings = this._loadSettings();
     let mode = settings.isInlineMode ? 'inline' : 'floating';
     if( settings.isLastTimeShowing ) {
       this.show({mode:mode});
@@ -471,7 +593,7 @@ class FloatingMenu {
 
 
   /**
-   * 拦截必要事件
+   * 拦截网站防御事件以正常实现文本选择和复制操作
    */
   interceptEvents() {
     /* 拦截选中文本 */
@@ -503,13 +625,8 @@ class FloatingMenu {
 
   /**
    * 绑定事件处理器
-   */
+   */ 
   bindEvents() {
-
-    this.pinElement.addEventListener('click', () => {
-      this.show({});
-    });
-
     // 关闭按钮
     const closeButton = this.element.querySelector('.menu-close');
     closeButton.addEventListener('click', () => this.hide());
@@ -612,16 +729,13 @@ class FloatingMenu {
     const themeToggle = this.element.querySelector('.menu-button.theme-toggle');
     themeToggle.addEventListener('click', () => {
       this.element.classList.toggle('dark-mode');
-      const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-      settings.isDarkMode = this.element.classList.contains('dark-mode');
-      localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+      this._saveSettings({isDarkMode:this.element.classList.contains('dark-mode')});
     });
 
     // 帮助按钮
     const helpButton = this.element.querySelector('.menu-button.help');
     const helpModal = this.helpElement;
     const helpClose = helpModal.querySelector('.help-close');
-    console.log(`${window.CONFIG.LOG_PREFIX} 浮动菜单创建成功`, helpButton, helpModal, helpClose);
 
     const showHelp = () => {
       helpModal.classList.remove('hide');
@@ -667,7 +781,7 @@ class FloatingMenu {
     if(options.mode) {
       mode = options.mode;
     } else { // 如果未指定模式，则根据本地存储中的设置
-      const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+      const settings = this.loadModeSettings();
       mode = settings.isInlineMode ? 'inline' : 'floating';
     }
 
@@ -761,7 +875,7 @@ class FloatingMenu {
     this.element.classList.add('floating');
 
     if(settings.resize) this.resetBodyWidth();
-    this.loadSettings('floating');
+    this.loadModeSettings('floating');
     
     // 更新按钮文本
     const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
@@ -785,7 +899,7 @@ class FloatingMenu {
     this.element.classList.remove('floating');
     this.element.classList.add('inline');
 
-    this.loadSettings('inline');
+    this.loadModeSettings('inline');
     if(settings.resize) this.resizeBodyWidth();
     
     // 更新按钮文本
@@ -813,25 +927,23 @@ class FloatingMenu {
   }
 
   saveFontSettings(fontSize) {
-    localStorage.setItem('floatingMenuFontSize', fontSize);
+    this._saveSettings({fontSize:fontSize});
   }
 
   loadFontSettings() {
-    const fontSize = parseFloat(localStorage.getItem('floatingMenuFontSize')) || 16;
-    this.element.style.fontSize = fontSize + 'px';
+    this.element.style.fontSize = this._loadSettings().fontSize + 'px';
   }
 
   /**
    * 保存模式设置
-   * @param {boolean} closed - 是否关闭
+   * @param {Object} options - 选项
+   * @param {boolean} options.closed - 是否关闭
+   * @param {boolean} options.isInlineMode - 是否内嵌模式
    */
-  saveModeSettings({closed=false, isInlineMode=true}) {
-    let settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-
-    settings.isInlineMode = isInlineMode;
-    settings.isLastTimeShowing = !closed;
-
-    localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+  saveModeSettings(options) {
+    const defaults = {closed:false, isInlineMode:true};
+    let settings = Object.assign({}, defaults, options);
+    this._saveSettings({isInlineMode:settings.isInlineMode, isLastTimeShowing:!settings.closed});
   }
 
   /**
@@ -845,7 +957,7 @@ class FloatingMenu {
    * floatingMenuLeft: 悬浮模式菜单左侧位置
    */
   savePositonSettings() {
-    let settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
+    let settings = {};
     if (this.#isInlineMode) {
       settings.inlineMenuWidth = this.element.offsetWidth;
       settings.inlineMenuHeight = this.element.offsetHeight;
@@ -856,30 +968,46 @@ class FloatingMenu {
       settings.floatingMenuTop = this.element.offsetTop;
       settings.floatingMenuLeft = this.element.offsetLeft;
     }
-    localStorage.setItem('floatingMenuSettings', JSON.stringify(settings));
+    this._saveSettings(settings);
   }
 
 
   /**
-   * 从本地存储中获取设置信息
+   * 从本地存储中加载模式设置
    */
-  loadSettings(mode='floating') {
-    const settings = JSON.parse(localStorage.getItem('floatingMenuSettings'));
-    if(!settings) { // 如果本地存储中没有设置信息，则默认设置为悬浮模式
-      return;
-    };
-
+  loadModeSettings(mode='inline') {
+    const settings = this._loadSettings();
     if (mode === 'inline') {
-      this.element.style.width = settings.inlineMenuWidth + 'px';
-      this.element.style.height = settings.inlineMenuHeight + 'px';
-      this.element.style.top = settings.inlineMenuTop + 'px';
-      this.element.style.left = 'auto';
+      if (settings.inlineMenuWidth) {
+        this.element.style.width = settings.inlineMenuWidth + 'px';
+        this.element.style.height = settings.inlineMenuHeight + 'px';
+        this.element.style.top = settings.inlineMenuTop + 'px';
+        this.element.style.left = 'auto';
+      }
     } else {
-      this.element.style.width = settings.floatingMenuWidth + 'px';
-      this.element.style.height = settings.floatingMenuHeight + 'px';
-      this.element.style.top = settings.floatingMenuTop + 'px';
-      this.element.style.left = settings.floatingMenuLeft + 'px';
+      if (settings.floatingMenuWidth) {
+        this.element.style.width = settings.floatingMenuWidth + 'px';
+        this.element.style.height = settings.floatingMenuHeight + 'px';
+        this.element.style.top = settings.floatingMenuTop + 'px';
+        this.element.style.left = settings.floatingMenuLeft + 'px';
+      }
     }
+    return settings;
+  }
+
+  _loadSettings() {
+    let settings = JSON.parse(localStorage.getItem(window.CONFIG.LOCAL_STORAGE_KEY)) || {
+      isInlineMode:true,
+      isLastTimeShowing:true,
+      fontSize:16,
+      isDarkMode:false,
+    };
+    return settings;
+  }
+  _saveSettings(settings) {
+    let savedSettings = this._loadSettings();
+    Object.assign(savedSettings, settings);
+    localStorage.setItem(window.CONFIG.LOCAL_STORAGE_KEY, JSON.stringify(savedSettings));
   }
 }
 // 导出

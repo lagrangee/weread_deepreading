@@ -55,7 +55,7 @@
   --color-dark-bg: #1a1a1a;
   --color-dark-bg-secondary: #2d2d2d;
   --color-dark-text: #eee;
-  --color-dark-text-secondary: #b0b0b0;
+  --color-dark-text-secondary: #ddd;
   --color-dark-border: #555;
   --color-dark-primary: rgb(70,122,200);
 
@@ -115,21 +115,36 @@
     bottom: 50px;
     width: 48px;
     height: 48px;
-    cursor: pointer;
+    cursor: grab;
+    z-index: var(--z-menu);
+    
+    &.dragging {
+      cursor: grabbing;
+      .menu-icon {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+
+    button {
+      width: 100%;
+      height: 100%;
+      background: none;
+      border: none;
+      padding: 0;
+    }
     
     .menu-icon {
       display: block;
       width: 100%;
       height: 100%;
-      background-image: url('chrome-extension://__MSG_@@extension_id__/assets/icons/icon64.png');
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
+      background: url('chrome-extension://__MSG_@@extension_id__/assets/icons/icon64.png') center/contain no-repeat;
       opacity: 0.8;
-      transition: opacity 0.2s ease;
+      transition: all 0.2s ease;
       
       &:hover {
         opacity: 1;
+        transform: scale(1.05);
       }
     }
   }
@@ -367,11 +382,14 @@ header.menu-header {
   /* 书籍信息 */
   .book-info {
     margin-bottom: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     .book-title {
       font-size: 0.9em;
       font-weight: 600;
       color: var(--color-text);
-      margin-bottom: 4px;
+      margin: auto 1em auto 0.5em;
     }
     .book-author {
       font-size: 0.7em;
@@ -511,8 +529,8 @@ header.menu-header {
   /* 消息样式 */
   .message {
     max-width: 85%;
-    padding: var(--space-3);
-    margin: var(--space-2);
+    margin: 1em 0;
+    padding: 0.8em;
     border-radius: var(--radius-message);
     font-size: var(--text-sm);
     line-height: 1.5;
@@ -528,6 +546,13 @@ header.menu-header {
       background: var(--color-bg-secondary);
       color: var(--color-text);
       border-radius: var(--radius-message-reply);
+    }
+    h3 {
+      font-weight: bold;
+      line-height: 2;
+    }
+    li {
+      line-height: 1.8;
     }
   }
 }
