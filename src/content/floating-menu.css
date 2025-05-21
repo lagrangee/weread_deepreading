@@ -38,6 +38,20 @@
     box-shadow: 0 0 10px rgba(0,0,0,0.2); /* 添加阴影 */
   }
 }
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.3;
+  }
+}
+
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
 /* CSS 变量定义 */
 :root {
   /* 主题色 */
@@ -47,6 +61,7 @@
   /* 基础色 - 亮色模式 */
   --color-bg: #ffffff;
   --color-bg-secondary: #f8f9fa;
+  --color-bg-error: #f8d7da;
   --color-text: #333333;
   --color-text-secondary: #666666;
   --color-border: #dddddd;
@@ -80,12 +95,13 @@
   --radius-lg: 12px;
   --radius-message: 12px 12px 4px 12px;
   --radius-message-reply: 12px 12px 12px 4px;
+  --radius-message-info: 12px;
 
   /* 字体大小 */
   --text-base-px: 16px;
-  --text-sm: 0.8em;  /* 14px */
-  --text-base: 1em;    /* 16px */
-  --text-lg: 1.2em;  /* 18px */
+  --text-sm: 1em;  /* 14px */
+  --text-base: 1.2em;    /* 16px */
+  --text-lg: 1.5em;  /* 18px */
 
   /* 阴影 */
   --shadow-menu: 0 2px 20px rgba(0, 0, 0, 0.15);
@@ -109,6 +125,7 @@
     box-shadow var(--transition);
 }
 .weread-deepreading-helper {
+  font-size: var(--text-base-px);
   .fixed-pin {
     position: fixed;
     right: 10px;
@@ -176,7 +193,6 @@
   overflow: hidden;
   z-index: var(--z-menu);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: var(--text-base-px);
   &.hide {
     display: none;
   }
@@ -198,69 +214,69 @@
                 border-color var(--transition) var(--transition-slow),
                 box-shadow var(--transition) var(--transition-slow);
   }
-  &.dark-mode {
-    background: var(--color-dark-bg);
-    color: var(--color-dark-text);
+}
+.dark-mode .floating-menu {
+  background: var(--color-dark-bg);
+  color: var(--color-dark-text);
 
-    .menu-header, .chat-container, .input-container {
-      background: var(--color-dark-bg-secondary);
-      border-color: var(--color-dark-border);
+  .menu-header, .chat-container, .input-container {
+    background: var(--color-dark-bg-secondary);
+    border-color: var(--color-dark-border);
+  }
+
+  .menu-button {
+    background: var(--color-dark-bg-secondary) !important;
+    border-color: var(--color-dark-border) !important;
+    color: var(--color-dark-text) !important;
+
+    &:hover {
+      background: var(--color-dark-bg) !important;
     }
+  }
 
-    .menu-button {
-      background: var(--color-dark-bg-secondary) !important;
-      border-color: var(--color-dark-border) !important;
-      color: var(--color-dark-text) !important;
-
+  .controls {
+    .menu-close {
+      fill: var(--color-dark-text-secondary);
       &:hover {
-        background: var(--color-dark-bg) !important;
-      }
-    }
-
-    .controls {
-      .menu-close {
-        fill: var(--color-dark-text-secondary);
-        &:hover {
-          fill: var(--color-dark-text);
-        }
-      } 
-    }
-
-    .menu-header {
-      .menu-title {
-        color: var(--color-dark-text);
-      }
-      .book-title {
-        color: var(--color-dark-text);
-      }
-      .book-author {
-        color: var(--color-dark-text-secondary);
-      }
-      .text-preview {
-        background: var(--color-dark-bg-secondary);
-        color: var(--color-dark-text-secondary);
+        fill: var(--color-dark-text);
       }
     } 
-    .message {
-      &.user {
-        background: var(--color-dark-primary);
-        color: var(--color-dark-text);
-      }
-      &.ai {
-        background: var(--color-dark-bg-secondary);
-        color: var(--color-dark-text);
-      }
-    }
+  }
 
-    .input-container {
-      .chat-input {
-        background: var(--color-dark-bg-secondary);
-        border-color: var(--color-dark-border);
-        color: var(--color-dark-text);
-      }
-      .menu-button.send {
-        border: 1px solid var(--color-dark-border);
-      }
+  .menu-header {
+    .menu-title {
+      color: var(--color-dark-text);
+    }
+    .book-title {
+      color: var(--color-dark-text);
+    }
+    .book-author {
+      color: var(--color-dark-text-secondary);
+    }
+    .text-preview {
+      background: var(--color-dark-bg-secondary);
+      color: var(--color-dark-text-secondary);
+    }
+  } 
+  .message {
+    &.user {
+      background: var(--color-dark-primary);
+      color: var(--color-dark-text);
+    }
+    &.ai {
+      background: var(--color-dark-bg-secondary);
+      color: var(--color-dark-text);
+    }
+  }
+
+  .input-container {
+    .chat-input {
+      background: var(--color-dark-bg-secondary);
+      border-color: var(--color-dark-border);
+      color: var(--color-dark-text);
+    }
+    .menu-button.send {
+      border: 1px solid var(--color-dark-border);
     }
   }
 }
@@ -547,6 +563,36 @@ header.menu-header {
       color: var(--color-text);
       border-radius: var(--radius-message-reply);
     }
+    &.loading {
+      align-self: center;
+      background: var(--color-bg-secondary);
+      color: var(--color-text);
+      border-radius: var(--radius-message-info);
+      position: relative;
+      padding-left: 2.5em;
+      
+      &::before {
+        content: "";
+        position: absolute;
+        left: 1em;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1em;
+        height: 1em;
+        border: 2px solid var(--color-text);
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    &.error {
+      align-self: center;
+      background: var(--color-bg-error);
+      color: #721c24;
+      border-radius: var(--radius-message-info);
+      animation: fadeOut 5s ease-out;
+    }
     h3 {
       font-weight: bold;
       line-height: 2;
@@ -639,78 +685,292 @@ header.menu-header {
 
 /* 帮助弹窗样式 */
 .help-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-
-  .help-content h2 {
-    margin: 0 0 1em;
-    font-size: 1.2em;
-    text-align: center;
-  }
-
-  .shortcut-list {
-    display: grid;
-    gap: 1em;
-  }
-
-  .shortcut-item {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 1em;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
     align-items: center;
-    .key {
-      background: var(--color-bg-secondary);
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-      text-align: center;
-      font-family: monospace;
-    }
-  }
+    z-index: 10000;
+}
 
-  .help-close {
-    display: block;
-    margin: var(--space-5) auto 0;
-    padding: var(--space-2) var(--space-5);
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary);
-    color: white;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--color-primary-hover);
-    } 
-  }
-
-  &.hide {
+.help-modal.hide {
     display: none;
-  }
+}
 
-  .help-content {
-    background: var(--color-bg);
-    border-radius: var(--radius-lg);
-    padding: var(--space-5);
-    width: 90%;
-    max-width: 500px;
+.help-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 900px;
+    max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
-  }
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 }
 
-.floating-menu.dark-mode .shortcut-item .key {
-  background: var(--color-dark-bg-secondary);
+/* 帮助弹窗头部 */
+.help-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
 }
 
-.floating-menu.dark-mode .help-content {
-  background: var(--color-dark-bg);
-  color: var(--color-dark-text);
+.help-header h2 {
+    font-size: 2em;
+    color: #2c3e50;
+    margin: 0 0 12px;
+}
+
+.help-header .intro {
+    color: #666;
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+}
+
+/* 帮助弹窗主体 */
+.help-body {
+    display: flex;
+    gap: 32px;
+}
+
+/* 模型配置部分 */
+.model-config {
+    flex: 1;
+    padding-right: 32px;
+    border-right: 1px solid #eee;
+}
+
+.model-config h3,
+.shortcuts h3 {
+    font-size: var(--text-lg);
+    color: #2c3e50;
+    margin: 0 0 16px;
+}
+
+.service-select {
+    margin-bottom: 24px;
+}
+
+.service-select label {
+    display: block;
+    margin-bottom: 8px;
+    color: #666;
+    font-size: var(--text-base);
+}
+
+.service-select select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: var(--text-base);
+    color: #333;
+}
+
+/* API Key 输入组样式 */
+.api-keys {
+    margin-bottom: 24px;
+}
+
+.api-key-group {
+  .api-key-input {
+    -webkit-text-security: disc !important;
+  margin-bottom: 16px;
+}
+
+.api-key-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #666;
+    font-size: var(--text-base);
+}
+
+.input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: var(--text-base);
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52,152,219,0.1);
+}
+
+/* 快捷键部分 */
+.shortcuts {
+    flex: 1;
+}
+
+.shortcut-list {
+    display: grid;
+    gap: 12px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shortcut-item .key {
+    background: #f5f6f7;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: var(--text-base);
+    color: #2c3e50;
+    min-width: 24px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.shortcut-item .description {
+    color: #666;
+    font-size: var(--text-base);
+}
+
+/* 按钮样式 */
+.help-modal .test-btn {
+    padding: 8px 16px;
+    background: #f5f6f7;
+    border: none;
+    border-radius: 6px;
+    color: #666;
+    font-size: var(--text-base);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.help-modal .test-btn:hover {
+    background: #e9ecef;
+}
+
+.help-modal .primary {
+    background: #3498db;
+    color: white;
+    padding: 8px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: var(--text-base);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.help-modal .primary:hover {
+    background: #2980b9;
+}
+
+.help-modal .actions {
+    margin-bottom: 16px;
+}
+
+.help-modal .status-message {
+    font-size: var(--text-base);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.help-modal .status-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.help-modal .status-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.help-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.help-close:hover {
+    background: #f5f6f7;
+}
+
+/* 暗色模式 */
+.dark-mode .help-content {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.dark-mode .help-header {
+    border-bottom-color: #333;
+}
+
+.dark-mode .help-header h2 {
+    color: #fff;
+}
+
+.dark-mode .help-header .intro {
+    color: #999;
+}
+
+.dark-mode .model-config {
+    border-right-color: #333;
+}
+
+.dark-mode .model-config h3,
+.dark-mode .shortcuts h3 {
+    color: #fff;
+}
+
+.dark-mode .service-select select,
+.dark-mode .input-group input {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+}
+
+.dark-mode .shortcut-item .key {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+}
+
+.dark-mode .shortcut-item .description {
+    color: #999;
+}
+
+.dark-mode .test-btn {
+    background: #2a2a2a;
+    color: #999;
+}
+
+.dark-mode .test-btn:hover {
+    background: #333;
+}
+
+.dark-mode .help-close {
+    color: #999;
+}
+
+.dark-mode .help-close:hover {
+    background: #2a2a2a;
 }

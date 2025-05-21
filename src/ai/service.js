@@ -104,10 +104,34 @@ export class AIService {
     } catch (error) {
       if (error instanceof AIServiceError) throw error;
       throw new AIServiceError(
-        `调用 ${this.providerName} API 时发生错误`,
+        `调用${this.providerName} API 时发生错误`,
         'API_ERROR',
         error
       );
+    }
+  }
+
+  async test(provider, key) {
+    try {
+      const respone = await chrome.runtime.sendMessage({
+        type: 'TEST_API_KEY',
+        provider,
+        key
+      });
+      console.log("test api key respone: ", respone);
+      if (respone.error) {
+        return {
+          success: false,
+          error: respone.error
+        }
+      }
+      return {
+        success: true,
+        data: respone
+      };
+    } catch (error) {
+      if (error instanceof AIServiceError) throw error;
+      throw new AIServiceError('测试失败', 'TEST_ERROR', error);
     }
   }
 

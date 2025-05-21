@@ -20,8 +20,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
             console.log(`${CONFIG.LOG_PREFIX} AI 设置更新已发送到标签页 ${tab.id}`);
           } catch (err) {
-            // 忽略不支持消息的标签页
-            console.debug(`${CONFIG.LOG_PREFIX} 标签页 ${tab.id} 不支持消息传递:`, err);
           }
       }});
       sendResponse({ success: true });
@@ -53,7 +51,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'TEST_API_KEY') {
     testApiKey(request.provider, request.key)
       .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+      .catch(error => sendResponse({
+         success: false,
+         error:{
+          message: error.message,
+          type: error.type
+         }
+      }));
     return true;
   }
 });
@@ -100,7 +104,7 @@ async function handleAIChat({ provider, systemPrompt, userPrompt }) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`API 请求失败: ${response.status} - ${errorText}`);
+      throw new Error(`API 请求失败: ${response.status} - ${JSON.parse(errorText).error.message}`);
     }
 
     const data = await response.json();
@@ -108,7 +112,6 @@ async function handleAIChat({ provider, systemPrompt, userPrompt }) {
     // 根据不同提供商提取响应
     switch (provider) {
       case 'wenxin':
-        return data.result;
       case 'qianwen':
       case 'deepseek':
       case 'doubao':
@@ -148,12 +151,12 @@ async function testApiKey(provider, key) {
     });
 
     if (!response.ok) {
-      throw new Error(`API 请求失败: ${response.status}`);
+      const errorText = await response.text();
+      console.log("test api key response: ", response, errorText);
+      throw new Error(`${response.status} - ${JSON.parse(errorText).error.message}`);
     }
-
     return { success: true };
   } catch (error) {
-    console.error('API Key 测试失败:', error);
     throw error;
   }
 } 

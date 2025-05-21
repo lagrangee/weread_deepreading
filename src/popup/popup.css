@@ -10,7 +10,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
 }
 
 /* 标题样式 */
@@ -104,6 +104,7 @@ button:disabled {
 }
 
 .primary {
+  width: 100px;
   background-color: #3498db;
   color: white;
 }
@@ -115,7 +116,7 @@ button:disabled {
 /* 操作区域样式 */
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
 }
 

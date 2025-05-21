@@ -132,7 +132,7 @@ class PopupManager {
       if (response.success) {
         this.showStatus(`${this.getProviderName(provider)} API Key 测试成功`, 'success');
       } else {
-        this.showStatus(`${this.getProviderName(provider)} API Key 测试失败：${response.error}`, 'error');
+        this.showStatus(`${this.getProviderName(provider)} API Key 测试失败：${response.error.message}`, 'error');
       }
 
       // 恢复按钮状态

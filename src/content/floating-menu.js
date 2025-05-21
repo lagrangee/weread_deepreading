@@ -6,6 +6,17 @@ class FloatingMenu {
   /** @type {FloatingMenu} 单例实例 */
   static instance = null;
   
+  /** @type {Object} 服务商配置 */
+  static providers = {
+    wenxin: '文心一言',
+    qianwen: '通义千问',
+    doubao: '豆包',
+    deepseek: 'DeepSeek'
+  };
+
+  /** @type {string[]} 服务商列表 */
+  static providerList = Object.keys(FloatingMenu.providers);
+  
   /** @type {string} 当前选中的文本 */
   #currentText = '';
   /** @type {string} 当前书名 */
@@ -80,7 +91,13 @@ class FloatingMenu {
    * @param {string} authorName - 作者名
    */
   constructor(element, bookName, authorName) {
-    this.element = element.children[0];
+    if (FloatingMenu.instance) {
+      return FloatingMenu.instance;
+    }
+    FloatingMenu.instance = this;
+
+    this.wrapperElement = element;
+    this.contentElement = element.children[0];
     this.helpElement = element.children[1];
     this.pinElement = element.children[2];
     this.#bookName = bookName;
@@ -97,6 +114,9 @@ class FloatingMenu {
     this.bindEvents(); // 绑定事件处理器
     this.interceptEvents(); // 拦截必要事件, 实现正常的文字选中和复制
     this.setInitialPosition(); // 设置初始位置
+    
+    // 初始化帮助弹窗
+    this._initHelpModal();
   }
 
   /**
@@ -226,7 +246,7 @@ class FloatingMenu {
     
     // 应用暗色模式设置
     if (settings.isDarkMode) {
-      this.element.classList.add('dark-mode');
+      this.contentElement.classList.add('dark-mode');
     }
 
     // 加载 pin 位置
@@ -249,7 +269,7 @@ class FloatingMenu {
    * 初始化拖拽功能
    */
   initDrag() {
-    const bar = this.element.querySelector('.bar');
+    const bar = this.contentElement.querySelector('.bar');
     bar.addEventListener('mousedown', this.handleDragStart);
   }
 
@@ -265,7 +285,7 @@ class FloatingMenu {
     document.addEventListener('mouseup', this.handleDragEnd);
 
     this.#isDragging = true;
-    const rect = this.element.getBoundingClientRect();
+    const rect = this.contentElement.getBoundingClientRect();
     
     this.#startX = e.clientX;
     this.#startY = e.clientY;
@@ -273,8 +293,8 @@ class FloatingMenu {
     this.#elementY = rect.top;
     
     // 添加拖拽时的样式
-    // this.element.style.transition = 'none';
-    this.element.style.cursor = 'grabbing';
+    // this.contentElement.style.transition = 'none';
+    this.contentElement.style.cursor = 'grabbing';
   }
 
   /**
@@ -294,15 +314,15 @@ class FloatingMenu {
     // 获取视口和元素尺寸
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    const rect = this.element.getBoundingClientRect();
+    const rect = this.contentElement.getBoundingClientRect();
     
     // 边界检查
     newX = Math.min(Math.max(newX, 0), vw - rect.width);
     newY = Math.min(Math.max(newY, 0), vh - rect.height);
     
     // 使用 transform 进行移动以提高性能
-    this.element.style.left = `${newX}px`;
-    this.element.style.top = `${newY}px`;
+    this.contentElement.style.left = `${newX}px`;
+    this.contentElement.style.top = `${newY}px`;
   }
 
   /**
@@ -312,8 +332,8 @@ class FloatingMenu {
     if (!this.#isDragging) return;
     
     this.#isDragging = false;
-    this.element.style.cursor = '';
-    // this.element.style.transition = 'all 0.2s';
+    this.contentElement.style.cursor = '';
+    // this.contentElement.style.transition = 'all 0.2s';
 
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup', this.handleDragEnd);
@@ -328,19 +348,19 @@ class FloatingMenu {
     // 创建四个调整手柄：左、右、左下、右下
     const resizeHandleSE = document.createElement('div');
     resizeHandleSE.className = 'resize-handle se';
-    this.element.appendChild(resizeHandleSE);
+    this.contentElement.appendChild(resizeHandleSE);
 
     const resizeHandleSW = document.createElement('div');
     resizeHandleSW.className = 'resize-handle sw';
-    this.element.appendChild(resizeHandleSW);
+    this.contentElement.appendChild(resizeHandleSW);
 
     const resizeHandleE = document.createElement('div');
     resizeHandleE.className = 'resize-handle e';
-    this.element.appendChild(resizeHandleE);
+    this.contentElement.appendChild(resizeHandleE);
 
     const resizeHandleW = document.createElement('div');
     resizeHandleW.className = 'resize-handle w';
-    this.element.appendChild(resizeHandleW);
+    this.contentElement.appendChild(resizeHandleW);
 
     // 绑定调整大小事件
     [resizeHandleSE, resizeHandleSW, resizeHandleE, resizeHandleW].forEach(handle => {
@@ -354,7 +374,7 @@ class FloatingMenu {
       }
       
       this.#resizeTimeout = setTimeout(() => {
-        const rect = this.element.getBoundingClientRect();
+        const rect = this.contentElement.getBoundingClientRect();
         const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
         
@@ -362,8 +382,8 @@ class FloatingMenu {
         const x = Math.min(rect.left, vw - rect.width);
         const y = Math.min(rect.top, vh - rect.height);
         
-        this.element.style.left = `${Math.max(0, x)}px`;
-        this.element.style.top = `${Math.max(0, y)}px`;
+        this.contentElement.style.left = `${Math.max(0, x)}px`;
+        this.contentElement.style.top = `${Math.max(0, y)}px`;
       }, 100);
     });
   }
@@ -386,9 +406,9 @@ class FloatingMenu {
     // 记录初始状态
     this.#startX = e.clientX;
     this.#startY = e.clientY;
-    this.#elementWidth = this.element.offsetWidth;
-    this.#elementHeight = this.element.offsetHeight;
-    this.#elementX = this.element.offsetLeft;
+    this.#elementWidth = this.contentElement.offsetWidth;
+    this.#elementHeight = this.contentElement.offsetHeight;
+    this.#elementX = this.contentElement.offsetLeft;
   }
 
   /**
@@ -409,33 +429,33 @@ class FloatingMenu {
       case 'se':
         // 右下角调整：直接改变宽度和高度
         const seWidth = Math.min(this.#elementWidth + dx, vw - this.#elementX);
-        const seHeight = Math.min(this.#elementHeight + dy, vh - this.element.offsetTop);
+        const seHeight = Math.min(this.#elementHeight + dy, vh - this.contentElement.offsetTop);
         
-        this.element.style.width = `${seWidth}px`;
-        this.element.style.height = `${seHeight}px`;
+        this.contentElement.style.width = `${seWidth}px`;
+        this.contentElement.style.height = `${seHeight}px`;
         break;
 
       case 'sw':
         // 左下角调整：直接改变宽度和高度
         const swWidth = Math.min(this.#elementWidth - dx, this.#elementX + this.#elementWidth);
-        const swHeight = Math.min(this.#elementHeight + dy, vh - this.element.offsetTop);
+        const swHeight = Math.min(this.#elementHeight + dy, vh - this.contentElement.offsetTop);
         
-        this.element.style.left = `${this.#elementX - swWidth + this.#elementWidth}px`;
-        this.element.style.width = `${swWidth}px`;
-        this.element.style.height = `${swHeight}px`;
+        this.contentElement.style.left = `${this.#elementX - swWidth + this.#elementWidth}px`;
+        this.contentElement.style.width = `${swWidth}px`;
+        this.contentElement.style.height = `${swHeight}px`;
         break;
 
       case 'e':
         // 右边调整：只改变宽度
         const eWidth = Math.min(this.#elementWidth + dx, vw - this.#elementX);
-        this.element.style.width = `${eWidth}px`;
+        this.contentElement.style.width = `${eWidth}px`;
         break;
 
       case 'w':
         // 左边调整：改变宽度和位置
         const wWidth = Math.min(this.#elementWidth - dx, this.#elementX + this.#elementWidth);
-        this.element.style.left = `${this.#elementX - wWidth + this.#elementWidth}px`;
-        this.element.style.width = `${wWidth}px`;
+        this.contentElement.style.left = `${this.#elementX - wWidth + this.#elementWidth}px`;
+        this.contentElement.style.width = `${wWidth}px`;
         break;
     }
   }
@@ -467,28 +487,28 @@ class FloatingMenu {
       switch(e.key.toLowerCase()) {
         case 'a':
           if (e.key === 'a') {
-            this.element.querySelector('.menu-button.font-adjust.decrease').click();
+            this.contentElement.querySelector('.menu-button.font-adjust.decrease').click();
           } else {
-            this.element.querySelector('.menu-button.font-adjust.increase').click();
+            this.contentElement.querySelector('.menu-button.font-adjust.increase').click();
           }
           break;
         case 'd':
-          this.element.querySelector('.menu-button.theme-toggle').click();
+          this.contentElement.querySelector('.menu-button.theme-toggle').click();
           break;
         case 'e':
-          this.element.querySelector('.menu-button.explain').click();
+          this.contentElement.querySelector('.menu-button.explain').click();
           break;
         case 'x':
-          this.element.querySelector('.menu-button.digest').click();
+          this.contentElement.querySelector('.menu-button.digest').click();
           break;
         case 'm':
-          this.element.querySelector('.menu-button.analyze').click();
+          this.contentElement.querySelector('.menu-button.analyze').click();
           break;
         case 't':
-          this.element.querySelector('.menu-button.toggle-mode').click();
+          this.contentElement.querySelector('.menu-button.toggle-mode').click();
           break;
         case '?':
-          this.element.querySelector('.menu-button.help').click();
+          this.contentElement.querySelector('.menu-button.help').click();
           break;
         case 'escape':
           const helpModal = this.helpElement;
@@ -525,8 +545,8 @@ class FloatingMenu {
    * 初始化聊天功能
    */
   initChat() {
-    const input = this.element.querySelector('.chat-input');
-    const sendButton = this.element.querySelector('.menu-button.send');
+    const input = this.contentElement.querySelector('.chat-input');
+    const sendButton = this.contentElement.querySelector('.menu-button.send');
 
     const sendMessage = async () => {
       const text = input.value.trim();
@@ -537,7 +557,7 @@ class FloatingMenu {
       input.style.height = 'auto';
 
       const context = [];
-      this.element.querySelectorAll('.chat-container .message').forEach(element => {
+      this.contentElement.querySelectorAll('.chat-container .message').forEach(element => {
         if (element.classList.contains('user')) {
           context.push(`我问：${element.innerHTML}`);
         }
@@ -548,13 +568,15 @@ class FloatingMenu {
 
       // 显示用户消息
       this.appendMessage(text, 'user');
+      this.showLoading();
 
       try {
         const result = await AIService.getInstance().chat(text, this.#authorName, this.#bookName, context.join('\n').slice(-CONFIG.MAX_CONTEXT_LENGTH));
+        this.hideLoading();
         this.appendMessage(result, 'ai');
       } catch (error) {
         console.error('发送消息失败:', error);
-        this.showError('发送消息失败，请重试');
+        this.showError('发送消息失败', error);
       }
     };
 
@@ -580,7 +602,7 @@ class FloatingMenu {
    * @param {'user' | 'ai'} type - 消息类型
    */
   appendMessage(content, type) {
-    const container = this.element.querySelector('.chat-container');
+    const container = this.contentElement.querySelector('.chat-container');
     const message = document.createElement('div');
     message.className = `message ${type}`;
     
@@ -597,15 +619,15 @@ class FloatingMenu {
    */
   interceptEvents() {
     /* 拦截选中文本 */
-    this.element.addEventListener('selectstart', (e) => {
+    this.wrapperElement.addEventListener('selectstart', (e) => {
         e.stopPropagation();
     });
     /* 拦截右键菜单 */
-    this.element.addEventListener('contextmenu', (e) => {
+    this.wrapperElement.addEventListener('contextmenu', (e) => {
       e.stopPropagation();
     });
     /* 拦截 ctrl+c */
-    this.element.addEventListener('keydown', (e) => {
+    this.wrapperElement.addEventListener('keydown', (e) => {
       if (e.ctrlKey && (e.key === 'c' || e.key === 'a')) {
         e.stopPropagation();
       }
@@ -628,11 +650,11 @@ class FloatingMenu {
    */ 
   bindEvents() {
     // 关闭按钮
-    const closeButton = this.element.querySelector('.menu-close');
+    const closeButton = this.contentElement.querySelector('.menu-close');
     closeButton.addEventListener('click', () => this.hide());
 
     // 切换模式按钮
-    const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
+    const toggleButton = this.contentElement.querySelector('.menu-button.toggle-mode');
     toggleButton.addEventListener('click', () => {
       if (this.#isInlineMode) {
         this.switchToFloating();
@@ -642,12 +664,13 @@ class FloatingMenu {
     });
 
     // 功能按钮
-    const explainButton = this.element.querySelector('.menu-button.explain');
-    const digestButton = this.element.querySelector('.menu-button.digest');
-    const analyzeButton = this.element.querySelector('.menu-button.analyze');
+    const explainButton = this.contentElement.querySelector('.menu-button.explain');
+    const digestButton = this.contentElement.querySelector('.menu-button.digest');
+    const analyzeButton = this.contentElement.querySelector('.menu-button.analyze');
 
     explainButton.addEventListener('click', async () => {
       try {
+        this.showLoading();
         explainButton.classList.add('loading');
         explainButton.disabled = true;
         const result = await AIService.getInstance().explain(
@@ -658,7 +681,7 @@ class FloatingMenu {
         this.showResult({ content: result });
       } catch (error) {
         console.error('解释失败:', error);
-        this.showError('解释失败，请重试');
+        this.showError('解释失败', error);
       } finally {
         explainButton.classList.remove('loading');
         explainButton.disabled = false;
@@ -667,6 +690,7 @@ class FloatingMenu {
 
     digestButton.addEventListener('click', async () => {
       try {
+        this.showLoading();
         digestButton.classList.add('loading');
         digestButton.disabled = true;
         const result = await AIService.getInstance().digest(
@@ -677,7 +701,7 @@ class FloatingMenu {
         this.showResult({ content: result });
       } catch (error) {
         console.error('消化失败:', error);
-        this.showError('消化失败，请重试');
+        this.showError('消化失败', error);
       } finally {
         digestButton.classList.remove('loading');
         digestButton.disabled = false;
@@ -686,6 +710,7 @@ class FloatingMenu {
 
     analyzeButton.addEventListener('click', async () => {
       try {
+        this.showLoading();
         analyzeButton.classList.add('loading');
         analyzeButton.disabled = true;
         const result = await AIService.getInstance().analyze(
@@ -696,7 +721,7 @@ class FloatingMenu {
         this.showResult({ content: result });
       } catch (error) {
         console.error('兼听失败:', error);
-        this.showError('兼听失败，请重试');
+        this.showError('兼听失败', error);
       } finally {
         analyzeButton.classList.remove('loading');
         analyzeButton.disabled = false;
@@ -704,51 +729,54 @@ class FloatingMenu {
     });
 
     // 字体调节按钮
-    const increaseButton = this.element.querySelector('.menu-button.font-adjust.increase');
-    const decreaseButton = this.element.querySelector('.menu-button.font-adjust.decrease');
+    const increaseButton = this.contentElement.querySelector('.menu-button.font-adjust.increase');
+    const decreaseButton = this.contentElement.querySelector('.menu-button.font-adjust.decrease');
     
     increaseButton.addEventListener('click', () => {
-      let fontSize = parseFloat(this.element.style.fontSize);
+      let fontSize = parseFloat(this.wrapperElement.style.fontSize);
       if (fontSize < 24) { // 最大字体限制
         fontSize += 1;
-        this.element.style.fontSize = fontSize + 'px';
+        this.wrapperElement.style.fontSize = fontSize + 'px';
         this.saveFontSettings(fontSize);
       }
     });
 
     decreaseButton.addEventListener('click', () => {
-      let fontSize = parseFloat(this.element.style.fontSize);
+      let fontSize = parseFloat(this.wrapperElement.style.fontSize);
       if (fontSize > 12) { // 最小字体限制
         fontSize -= 1;
-        this.element.style.fontSize = fontSize + 'px';
+        this.wrapperElement.style.fontSize = fontSize + 'px';
         this.saveFontSettings(fontSize);
       }
     });
 
     // 暗色模式切换
-    const themeToggle = this.element.querySelector('.menu-button.theme-toggle');
+    const themeToggle = this.contentElement.querySelector('.menu-button.theme-toggle');
     themeToggle.addEventListener('click', () => {
-      this.element.classList.toggle('dark-mode');
-      this._saveSettings({isDarkMode:this.element.classList.contains('dark-mode')});
+      this.wrapperElement.classList.toggle('dark-mode');
+      this._saveSettings({isDarkMode:this.wrapperElement.classList.contains('dark-mode')});
     });
 
     // 帮助按钮
-    const helpButton = this.element.querySelector('.menu-button.help');
-    const helpModal = this.helpElement;
-    const helpClose = helpModal.querySelector('.help-close');
+    this.helpButton = this.contentElement.querySelector('.menu-button.help');
+    this.helpModal = this.helpElement;
+    this.helpCloseButton = this.helpModal.querySelector('.help-close');
+
+    this._initModelConfig();
 
     const showHelp = () => {
-      helpModal.classList.remove('hide');
+      this.helpModal.classList.remove('hide');
+      this._loadModelConfig();
     };
 
     const hideHelp = () => {
-      helpModal.classList.add('hide');
+      this.helpModal.classList.add('hide');
     };
 
-    helpButton.addEventListener('click', showHelp);
-    helpClose.addEventListener('click', hideHelp);
-    helpModal.addEventListener('click', (e) => {
-      if (e.target === helpModal) {
+    this.helpButton.addEventListener('click', showHelp);
+    this.helpCloseButton.addEventListener('click', hideHelp);
+    this.helpModal.addEventListener('click', (e) => {
+      if (e.target === this.helpModal) {
         hideHelp();
       }
     });
@@ -764,18 +792,18 @@ class FloatingMenu {
     if(options && options.text) this.#currentText = options.text;
 
     // 更新预览文本
-    const preview = this.element.querySelector('.text-preview');
+    const preview = this.contentElement.querySelector('.text-preview');
     preview.textContent = this.#currentText;
     
     // 更新书籍信息
-    const bookTitle = this.element.querySelector('.book-title');
-    const bookAuthor = this.element.querySelector('.book-author');
+    const bookTitle = this.contentElement.querySelector('.book-title');
+    const bookAuthor = this.contentElement.querySelector('.book-author');
     bookTitle.textContent = this.#bookName;
     bookAuthor.textContent = this.#authorName;
     
     // 显示菜单
-    this.element.parentElement.classList.remove('hide');
-    this.element.parentElement.classList.add('show');
+    this.wrapperElement.classList.remove('hide');
+    this.wrapperElement.classList.add('show');
 
     let mode;
     if(options.mode) {
@@ -793,6 +821,20 @@ class FloatingMenu {
 
     this.#isShowing = true;
   }
+  
+  showLoading(){
+    let loadingDiv = this.contentElement.querySelector('.message.loading');
+    if(loadingDiv) loadingDiv.remove();
+    loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading message';
+    loadingDiv.textContent = '加载中...';
+    this.contentElement.querySelector('.chat-container').appendChild(loadingDiv); 
+  }
+  
+  hideLoading(){
+    let loadingDiv = this.contentElement.querySelector('.message.loading');
+    if(loadingDiv) loadingDiv.remove();
+  }
 
   /**
    * 显示结果
@@ -800,9 +842,10 @@ class FloatingMenu {
    */
   showResult(result) {
     if (!result || !result.content) {
-      this.showError('处理失败，请重试');
+      this.showError('处理失败');
       return;
     }
+    this.hideLoading();
     this.appendMessage(result.content, 'ai');
   }
 
@@ -810,38 +853,18 @@ class FloatingMenu {
    * 显示错误消息
    * @param {string} message - 错误消息
    */
-  showError(message) {
+  showError(tip, error = new Error()) {
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
+    errorDiv.className = 'error message';
+    errorDiv.textContent = `${tip} ${error.message}`;
     
-    document.body.appendChild(errorDiv);
+    this.hideLoading();
+    this.contentElement.querySelector('.chat-container').appendChild(errorDiv);
     
     // 2秒后自动移除
     setTimeout(() => {
       errorDiv.remove();
-    }, 2000);
-  }
-
-  /**
-   * 显示临时消息
-   * @param {string} message - 消息内容
-   * @param {number} duration - 显示时长（毫秒）
-   */
-  showMessage(message, duration = 2000) {
-    if (this.#messageTimeout) {
-      clearTimeout(this.#messageTimeout);
-    }
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'floating-message';
-    messageDiv.textContent = message;
-    
-    document.body.appendChild(messageDiv);
-    
-    this.#messageTimeout = setTimeout(() => {
-      messageDiv.remove();
-    }, duration);
+    }, 5000);
   }
 
   /**
@@ -854,8 +877,8 @@ class FloatingMenu {
     const settings = Object.assign({}, defaults, options);
 
     this.#isShowing = false;
-    this.element.parentElement.classList.remove('show');
-    this.element.parentElement.classList.add('hide');
+    this.wrapperElement.classList.remove('show');
+    this.wrapperElement.classList.add('hide');
     if (settings.needSaveSettings) this.saveModeSettings({closed:true, isInlineMode:this.#isInlineMode});
     if (this.#isInlineMode)  this.resetBodyWidth();
   }
@@ -871,14 +894,14 @@ class FloatingMenu {
 
     this.#isInlineMode = false;
     
-    this.element.classList.remove('inline');
-    this.element.classList.add('floating');
+    this.contentElement.classList.remove('inline');
+    this.contentElement.classList.add('floating');
 
     if(settings.resize) this.resetBodyWidth();
     this.loadModeSettings('floating');
     
     // 更新按钮文本
-    const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
+    const toggleButton = this.contentElement.querySelector('.menu-button.toggle-mode');
     const toggleText = toggleButton.querySelector('.toggle-text');
     toggleText.textContent = '内嵌模式(T)';
 
@@ -896,14 +919,14 @@ class FloatingMenu {
 
     this.#isInlineMode = true;
     
-    this.element.classList.remove('floating');
-    this.element.classList.add('inline');
+    this.contentElement.classList.remove('floating');
+    this.contentElement.classList.add('inline');
 
     this.loadModeSettings('inline');
     if(settings.resize) this.resizeBodyWidth();
     
     // 更新按钮文本
-    const toggleButton = this.element.querySelector('.menu-button.toggle-mode');
+    const toggleButton = this.contentElement.querySelector('.menu-button.toggle-mode');
     const toggleText = toggleButton.querySelector('.toggle-text');
     toggleText.textContent = '悬浮模式(T)';
 
@@ -914,7 +937,7 @@ class FloatingMenu {
    * resize body
    */
   resizeBodyWidth() {
-    document.body.style.width = window.innerWidth - this.element.offsetWidth + 'px';
+    document.body.style.width = window.innerWidth - this.contentElement.offsetWidth + 'px';
     window.dispatchEvent(new Event('resize'));
   }
 
@@ -931,7 +954,7 @@ class FloatingMenu {
   }
 
   loadFontSettings() {
-    this.element.style.fontSize = this._loadSettings().fontSize + 'px';
+    this.wrapperElement.style.fontSize = this._loadSettings().fontSize + 'px';
   }
 
   /**
@@ -959,14 +982,14 @@ class FloatingMenu {
   savePositonSettings() {
     let settings = {};
     if (this.#isInlineMode) {
-      settings.inlineMenuWidth = this.element.offsetWidth;
-      settings.inlineMenuHeight = this.element.offsetHeight;
-      settings.inlineMenuTop = this.element.offsetTop;
+      settings.inlineMenuWidth = this.contentElement.offsetWidth;
+      settings.inlineMenuHeight = this.contentElement.offsetHeight;
+      settings.inlineMenuTop = this.contentElement.offsetTop;
     } else {
-      settings.floatingMenuWidth = this.element.offsetWidth;
-      settings.floatingMenuHeight = this.element.offsetHeight;
-      settings.floatingMenuTop = this.element.offsetTop;
-      settings.floatingMenuLeft = this.element.offsetLeft;
+      settings.floatingMenuWidth = this.contentElement.offsetWidth;
+      settings.floatingMenuHeight = this.contentElement.offsetHeight;
+      settings.floatingMenuTop = this.contentElement.offsetTop;
+      settings.floatingMenuLeft = this.contentElement.offsetLeft;
     }
     this._saveSettings(settings);
   }
@@ -979,17 +1002,17 @@ class FloatingMenu {
     const settings = this._loadSettings();
     if (mode === 'inline') {
       if (settings.inlineMenuWidth) {
-        this.element.style.width = settings.inlineMenuWidth + 'px';
-        this.element.style.height = settings.inlineMenuHeight + 'px';
-        this.element.style.top = settings.inlineMenuTop + 'px';
-        this.element.style.left = 'auto';
+        this.contentElement.style.width = settings.inlineMenuWidth + 'px';
+        this.contentElement.style.height = settings.inlineMenuHeight + 'px';
+        this.contentElement.style.top = settings.inlineMenuTop + 'px';
+        this.contentElement.style.left = 'auto';
       }
     } else {
       if (settings.floatingMenuWidth) {
-        this.element.style.width = settings.floatingMenuWidth + 'px';
-        this.element.style.height = settings.floatingMenuHeight + 'px';
-        this.element.style.top = settings.floatingMenuTop + 'px';
-        this.element.style.left = settings.floatingMenuLeft + 'px';
+        this.contentElement.style.width = settings.floatingMenuWidth + 'px';
+        this.contentElement.style.height = settings.floatingMenuHeight + 'px';
+        this.contentElement.style.top = settings.floatingMenuTop + 'px';
+        this.contentElement.style.left = settings.floatingMenuLeft + 'px';
       }
     }
     return settings;
@@ -1008,6 +1031,227 @@ class FloatingMenu {
     let savedSettings = this._loadSettings();
     Object.assign(savedSettings, settings);
     localStorage.setItem(window.CONFIG.LOCAL_STORAGE_KEY, JSON.stringify(savedSettings));
+  }
+
+  _updateProviderDisplay(provider) {
+    this.contentElement.querySelector('.bar .model').textContent = `(${this._getProviderName(provider)})`;
+  }
+
+  /**
+   * 初始化帮助弹窗
+   * @private
+   */
+  _initHelpModal() {
+    // 动态生成服务商选项和API Key输入框
+    this._generateProviderElements();
+
+    // 初始化模型服务配置
+    this._initModelConfig();
+  }
+
+  /**
+   * 动态生成服务商选项和API Key输入框
+   * @private
+   */
+  _generateProviderElements() {
+    // 生成服务商选项
+    const selectElement = this.helpModal.querySelector('#modalCurrentProvider');
+    selectElement.innerHTML = FloatingMenu.providerList
+      .map(provider => `<option value="${provider}">${FloatingMenu.providers[provider]}</option>`)
+      .join('');
+
+    // 生成API Key输入框
+    const apiKeysContainer = this.helpModal.querySelector('.api-keys');
+    apiKeysContainer.innerHTML = FloatingMenu.providerList
+      .map(provider => {
+        const providerName = FloatingMenu.providers[provider];
+        const capitalizedProvider = provider.charAt(0).toUpperCase() + provider.slice(1);
+        return `
+          <div class="api-key-group">
+            <label for="modal${capitalizedProvider}Key">${providerName} API Key</label>
+            <div class="input-group">
+              <input type="text" 
+                     class="api-key-input"
+                     id="modal${capitalizedProvider}Key" 
+                     placeholder="输入 API Key"
+                     autocomplete="off"
+                     data-lpignore="truespacebetwe
+                     data-form-type="other">
+              <button class="test-btn" data-provider="${provider}">测试</button>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  /**
+   * 初始化模型服务配置
+   * @private
+   */
+  _initModelConfig() {
+    const modalnurrentProvider = this.helpModal.querySelector('#modalCurrentProvider');
+    const modalSaveConfig = this.helpModal.querySelector('#modalSaveConfig');
+    const modalStatusMsg = this.helpModal.querySelector('#modalStatusMsg');
+
+    // 测试按钮点击事件
+    this.helpModal.querySelectorAll('.test-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const provider = e.target.dataset.provider;
+        const key = this.helpModal.querySelector(`#modal${provider.charAt(0).toUpperCase() + provider.slice(1)}Key`).value;
+        await this._testApiKey(provider, key, modalStatusMsg);
+      });
+    });
+
+    // 保存配置按钮点击事件
+    modalSaveConfig.addEventListener('click', async () => {
+      await this._saveModelConfig(modalCurrentProvider, modalStatusMsg);
+    });
+  }
+
+  /**
+   * 加载模型配置
+   * @private
+   */
+  async _loadModelConfig() {
+    try {
+      const config = await chrome.storage.sync.get(['currentProvider', 'apiKeys']);
+      const modalCurrentProvider = this.helpModal.querySelector('#modalCurrentProvider');
+      
+      // 设置当前服务商
+      if (config.currentProvider) {
+        modalCurrentProvider.value = config.currentProvider;
+      }
+
+      // 设置 API Keys
+      if (config.apiKeys) {
+        Object.entries(config.apiKeys).forEach(([provider, key]) => {
+          const input = this.helpModal.querySelector(`#modal${provider.charAt(0).toUpperCase() + provider.slice(1)}Key`);
+          if (input) {
+            input.value = key;
+          }
+        });
+      }
+    } catch (error) {
+      this._showModalStatus('加载配置失败：' + error.message, 'error');
+    }
+  }
+
+  /**
+   * 保存模型配置
+   * @private
+   * @param {HTMLSelectElement} modalCurrentProvider - 当前服务商选择元素
+   * @param {HTMLElement} modalStatusMsg - 状态消息元素
+   */
+  async _saveModelConfig(modalCurrentProvider, modalStatusMsg) {
+    try {
+      const currentProvider = modalCurrentProvider.value;
+      const apiKeys = {};
+
+      // 收集所有非空的 API Keys
+      FloatingMenu.providerList.forEach(provider => {
+        const key = this.helpModal.querySelector(`#modal${provider.charAt(0).toUpperCase() + provider.slice(1)}Key`).value.trim();
+        if (key) {
+          apiKeys[provider] = key;
+        }
+      });
+
+      // 验证当前选择的服务商是否有对应的 API Key
+      if (!apiKeys[currentProvider]) {
+        throw new Error(`请先设置 ${this._getProviderName(currentProvider)} 的 API Key`);
+      }
+
+      const settings = { currentProvider, apiKeys };
+
+      // 保存到 storage
+      await chrome.storage.sync.set(settings);
+      
+      // 通知 background script 更新 AIService 设置
+      const response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_SETTINGS',
+        data: settings
+      });
+
+      if (!response.success) {
+        throw new Error(response.error?.message || '更新设置失败');
+      }
+
+      this._showModalStatus('设置已保存', 'success');
+    } catch (error) {
+      console.error('保存设置失败:', error);
+      this._showModalStatus(error.message || '保存设置失败', 'error');
+    }
+  }
+
+  /**
+   * 测试 API Key
+   * @private
+   * @param {string} provider - 服务商标识
+   * @param {string} key - API Key
+   * @param {HTMLElement} modalStatusMsg - 状态消息元素
+   */
+  async _testApiKey(provider, key, modalStatusMsg) {
+    if (!key) {
+      this._showModalStatus(`请输入 ${this._getProviderName(provider)} 的 API Key`, 'error');
+      return;
+    }
+
+    try {
+      // 显示测试中状态
+      const testBtn = this.helpModal.querySelector(`[data-provider="${provider}"]`);
+      const originalText = testBtn.textContent;
+      testBtn.textContent = '测试中...';
+      testBtn.disabled = true;
+
+      // 发送测试请求
+      const response = await AIService.getInstance().test(provider, key);
+
+      if (response.success) {
+        this._showModalStatus(`${this._getProviderName(provider)} API Key 测试成功`, 'success');
+      } else {
+        console.log("test api key response: ", response);
+        this._showModalStatus(`${this._getProviderName(provider)} API Key 测试失败: ${response.error.message}`, 'error');
+      }
+
+      // 恢复按钮状态
+      testBtn.textContent = originalText;
+      testBtn.disabled = false;
+    } catch (error) {
+      this._showModalStatus(`${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * 显示模态框状态消息
+   * @private
+   * @param {string} message - 消息内容
+   * @param {string} type - 消息类型（success/error）
+   */
+  _showModalStatus(message, type) {
+    const statusEl = this.helpModal.querySelector('#modalStatusMsg');
+    statusEl.textContent = message;
+    statusEl.classList.remove('error', 'success');
+    statusEl.classList.add(type);
+    
+    // 3秒后自动清除成功消息，错误消息需要手动关闭
+    if (type === 'success') {
+      setTimeout(() => {
+        if (statusEl.textContent === message) {
+          statusEl.textContent = '';
+          statusEl.classList.remove('success');
+        }
+      }, 3000);
+    }
+  }
+
+  /**
+   * 获取服务商名称
+   * @private
+   * @param {string} provider - 服务商标识
+   * @returns {string} 服务商名称
+   */
+  _getProviderName(provider) {
+    return FloatingMenu.providers[provider] || provider;
   }
 }
 // 导出

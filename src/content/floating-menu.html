@@ -3,7 +3,7 @@
         <!-- 头部区域 -->
         <header class="menu-header">
             <div class="bar">
-                <div class="menu-title">微信读书助手<span class="model"></span></div>
+                <div class="menu-title">深度阅读助手<span class="model"></span></div>
                 <div class="controls">
                     <button class="menu-button font-adjust increase" title="调大字体 (A)">
                         <span>A</span>
@@ -61,45 +61,109 @@
     <!-- 帮助弹窗 -->
     <div class="help-modal hide">
         <div class="help-content">
-            <h2>快捷键指南</h2>
-            <div class="shortcut-list">
-                <div class="shortcut-item">
-                    <span class="key">A</span>
-                    <span class="description">增大字体</span>
+            <div class="help-header">
+                <h2>深度阅读助手</h2>
+                <p class="intro">这是一个智能阅读助手，提供文本解释、内容消化和兼听等功能，让您的阅读体验更加丰富。</p>
+            </div>
+            
+            <div class="help-body">
+                <!-- 左侧：模型服务配置 -->
+                <div class="model-config">
+                    <h3>模型服务配置</h3>
+                    <div class="service-select">
+                        <label for="modalCurrentProvider">当前服务商</label>
+                        <select id="modalCurrentProvider">
+                            <option value="wenxin">文心一言</option>
+                            <option value="qianwen">通义千问</option>
+                            <option value="doubao">豆包</option>
+                            <option value="deepseek">DeepSeek</option>
+                        </select>
+                    </div>
+
+                    <div class="api-keys">
+                        <div class="api-key-group">
+                            <label for="modalWenxinKey">文心一言 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalWenxinKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="wenxin">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalQianwenKey">通义千问 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalQianwenKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="qianwen">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalDoubaoKey">豆包 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalDoubaoKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="doubao">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalDeepseekKey">DeepSeek API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalDeepseekKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="deepseek">测试</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="modalSaveConfig" class="primary">保存设置</button>
+                    </div>
+                    <div id="modalStatusMsg" class="status-message"></div>
                 </div>
-                <div class="shortcut-item">
-                    <span class="key">a</span>
-                    <span class="description">减小字体</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">D</span>
-                    <span class="description">切换暗色模式</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">T</span>
-                    <span class="description">切换显示模式（内嵌/悬浮）</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">E</span>
-                    <span class="description">解释选中文本</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">X</span>
-                    <span class="description">消化选中文本</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">M</span>
-                    <span class="description">兼听选中文本</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">Esc</span>
-                    <span class="description">关闭菜单（悬浮模式）</span>
-                </div>
-                <div class="shortcut-item">
-                    <span class="key">?</span>
-                    <span class="description">显示此帮助</span>
+
+                <!-- 右侧：快捷键列表 -->
+                <div class="shortcuts">
+                    <h3>快捷键指南</h3>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span class="key">A</span>
+                            <span class="description">增大字体</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">a</span>
+                            <span class="description">减小字体</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">D</span>
+                            <span class="description">切换暗色模式</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">T</span>
+                            <span class="description">切换显示模式（内嵌/悬浮）</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">E</span>
+                            <span class="description">解释选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">X</span>
+                            <span class="description">消化选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">M</span>
+                            <span class="description">兼听选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Esc</span>
+                            <span class="description">关闭菜单（悬浮模式）</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">?</span>
+                            <span class="description">显示此帮助</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
             <button class="help-close">关闭</button>
         </div>
     </div>

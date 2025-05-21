@@ -10,8 +10,8 @@ export const CONFIG = {
   // API 相关
   API_ENDPOINTS: {
     wenxin: {
-      url: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant',
-      model: 'eb-instant'
+      url: 'https://qianfan.baidubce.com/v2/chat/completions',
+      model: 'ernie-4.5-turbo-128k'
     },
     qianwen: {
       url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
