@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>深度阅读助手设置</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>深度阅读助手设置</h1>
+    
+    <div class="section">
+      <h2>当前服务商</h2>
+      <select id="currentProvider">
+        <option value="wenxin">文心一言</option>
+        <option value="qianwen">通义千问</option>
+        <option value="doubao">豆包</option>
+        <option value="deepseek">DeepSeek</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <h2>API Keys 设置</h2>
+      
+      <div class="api-key-group">
+        <label for="wenxinKey">文心一言 API Key</label>
+        <div class="input-group">
+          <input type="password" id="wenxinKey" placeholder="输入 API Key">
+          <button class="test-btn" data-provider="wenxin">测试</button>
+        </div>
+      </div>
+
+      <div class="api-key-group">
+        <label for="qianwenKey">通义千问 API Key</label>
+        <div class="input-group">
+          <input type="password" id="qianwenKey" placeholder="输入 API Key">
+          <button class="test-btn" data-provider="qianwen">测试</button>
+        </div>
+      </div>
+
+      <div class="api-key-group">
+        <label for="doubaoKey">豆包 API Key</label>
+        <div class="input-group">
+          <input type="password" id="doubaoKey" placeholder="输入 API Key">
+          <button class="test-btn" data-provider="doubao">测试</button>
+        </div>
+      </div>
+
+      <div class="api-key-group">
+        <label for="deepseekKey">DeepSeek API Key</label>
+        <div class="input-group">
+          <input type="password" id="deepseekKey" placeholder="输入 API Key">
+          <button class="test-btn" data-provider="deepseek">测试</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div id="statusMsg" class="status-message"></div>
+      <button id="saveConfig" class="primary">保存设置</button>
+    </div>
+
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html> 

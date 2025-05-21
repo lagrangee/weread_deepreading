@@ -71,7 +71,7 @@ export class AIService {
    * @returns {string} 替换后的提示词
    * @private
    */
-  _replacePromptVariables(prompt, variables) {
+  replacePromptVariables(prompt, variables) {
     return Object.entries(variables).reduce((result, [key, value]) => {
       return result.replace(`{${key}}`, value || '');
     }, prompt);
@@ -143,11 +143,11 @@ export class AIService {
    * @returns {Promise<string>} 解释结果
    */
   async explain(text, author, book) {
-    const systemPrompt = this._replacePromptVariables(CONFIG.PROMPTS.SYSTEM.explain, {
+    const systemPrompt = this.replacePromptVariables(CONFIG.PROMPTS.SYSTEM.explain, {
       author,
       book
     });
-    const userPrompt = this._replacePromptVariables(CONFIG.PROMPTS.USER.explain, {
+    const userPrompt = this.replacePromptVariables(CONFIG.PROMPTS.USER.explain, {
       author,
       book,
       text
@@ -163,11 +163,11 @@ export class AIService {
    * @returns {Promise<string>} 消化结果
    */
   async digest(text, author, book) {
-    const systemPrompt = this._replacePromptVariables(CONFIG.PROMPTS.SYSTEM.digest, {
+    const systemPrompt = this.replacePromptVariables(CONFIG.PROMPTS.SYSTEM.digest, {
       author,
       book
     });
-    const userPrompt = this._replacePromptVariables(CONFIG.PROMPTS.USER.digest, {
+    const userPrompt = this.replacePromptVariables(CONFIG.PROMPTS.USER.digest, {
       author,
       book,
       text
@@ -183,11 +183,11 @@ export class AIService {
    * @returns {Promise<string>} 分析结果
    */
   async analyze(text, author, book) {
-    const systemPrompt = this._replacePromptVariables(CONFIG.PROMPTS.SYSTEM.analyze, {
+    const systemPrompt = this.replacePromptVariables(CONFIG.PROMPTS.SYSTEM.analyze, {
       author,
       book
     });
-    const userPrompt = this._replacePromptVariables(CONFIG.PROMPTS.USER.analyze, {
+    const userPrompt = this.replacePromptVariables(CONFIG.PROMPTS.USER.analyze, {
       author,
       book,
       text
@@ -204,11 +204,11 @@ export class AIService {
    * @returns {Promise<string>} AI 响应
    */
   async chat(text, author, book, context) {
-    const systemPrompt = this._replacePromptVariables(CONFIG.PROMPTS.SYSTEM.chat, {
+    const systemPrompt = this.replacePromptVariables(CONFIG.PROMPTS.SYSTEM.chat, {
       author,
       book
     });
-    const userPrompt = this._replacePromptVariables(CONFIG.PROMPTS.USER.chat, {
+    const userPrompt = this.replacePromptVariables(CONFIG.PROMPTS.USER.chat, {
       author,
       book,
       text,

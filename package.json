@@ -1,0 +1,36 @@
+{
+  "name": "weread_deepreading",
+  "version": "1.0.0",
+  "description": "## 项目介绍 微信读书深度阅读助手是一个Chrome浏览器扩展，为微信读书用户提供智能阅读辅助功能，包括文本解释、内容消化、兼听等功能。",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build:js": "terser src/background/background.js -o dist/background.js && terser src/content/content.js -o dist/content.js && terser src/content/floating-menu.js -o dist/floating-menu.js",
+    "build:css": "cleancss -o dist/floating-menu.min.css src/content/floating-menu.css",
+    "build": "npm run clean && mkdir -p dist && npm run build:js && npm run build:css && cp -r assets manifest.json src/popup dist/",
+    "package": "cd dist && zip -r ../weread-deepreading-v1.0.0.zip .",
+    "generate:promo": "node scripts/generate-promo.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lagrangee/weread_deepreading.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "weread",
+    "ai-assistant"
+  ],
+  "author": "lagrangee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lagrangee/weread_deepreading/issues"
+  },
+  "homepage": "https://github.com/lagrangee/weread_deepreading#readme",
+  "devDependencies": {
+    "canvas": "^3.1.0",
+    "clean-css-cli": "^5.6.3",
+    "terser": "^5.39.2",
+    "uglify-js": "^3.19.3"
+  }
+}

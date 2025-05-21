@@ -40,7 +40,7 @@ assets/              # 静态资源
 ### 安装步骤
 1. 克隆仓库
 ```bash
-git clone [repository-url]
+git clone https://github.com/lagrangee/weread-deepreading.git
 cd weread_deepreading
 ```
 
@@ -100,12 +100,12 @@ chrome.storage.sync.get(['key'], function(result) {
   - 基本功能实现：文本解释、内容消化、兼听
 
 ## 许可证
-[许可证类型] - 查看 LICENSE 文件了解详情
+MIT License - 查看 LICENSE 文件了解详情
 
 ## 联系方式
-项目维护者 - [维护者信息]
+项目维护者 - lagrangee
 
-项目链接: [GitHub仓库链接]
+项目链接: https://github.com/lagrangee/weread-deepreading
 
 ## 核心功能
 

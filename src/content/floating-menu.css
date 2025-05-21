@@ -782,6 +782,7 @@ header.menu-header {
 .api-key-group {
   .api-key-input {
     -webkit-text-security: disc !important;
+  }
   margin-bottom: 16px;
 }
 
