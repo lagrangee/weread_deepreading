@@ -1,0 +1,173 @@
+<div class="weread-deepreading-helper hide">
+    <div class="assistant-panel">
+        <!-- 头部区域 -->
+        <header class="menu-header">
+            <div class="bar">
+                <div class="menu-title">深度阅读助手<button class="menu-button provider"></button></div>
+                <div class="controls">
+                    <button class="menu-button font-adjust increase" title="调大字体 (A)">
+                        <span>A</span>
+                    </button>
+                    <button class="menu-button font-adjust decrease" title="调小字体 (a)">
+                        <span>a</span>
+                    </button>
+                    <button class="menu-button theme-toggle" title="切换暗色模式 (D)">
+                        <svg class="theme-icon light" width="16" height="16" viewBox="0 0 16 16">
+                            <path fill="currentColor" d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.9 9.9a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.9 0a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm-9.9-9.9a.5.5 0 0 1 0 .707l-1.414 1.414a.5.5 0 1 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0z"/>
+                        </svg>
+                        <svg class="theme-icon dark" width="16" height="16" viewBox="0 0 16 16">
+                            <path fill="currentColor" d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+                        </svg>
+                    </button>
+                    <button class="menu-button help" title="帮助 (?)">
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <path fill="currentColor" d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path fill="currentColor" d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/>
+                        </svg>
+                    </button>
+                    <button class="menu-button toggle-mode" title="切换显示模式 (T)">
+                        <span class="inline">内嵌</span><span class="floating">浮动</span>模式(T)
+                    </button>
+                    <button class="menu-close" title="关闭 (Esc)">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="book-info">
+                <div class="book-title"></div>
+                <div class="book-author"></div>
+            </div>
+            <div class="text-preview"></div>
+            <div class="menu-buttons">
+                <button class="menu-button explain" title="解释 (E)">解释<span class="default">一下(E)</span><span class="loading">中</span></button>
+                <button class="menu-button digest" title="消化 (X)">消化<span class="default">一下(X)</span><span class="loading">中</span></button>
+                <button class="menu-button analyze" title="兼听 (M)">兼听<span class="default">一下(M)</span><span class="loading">中</span></button>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="chat-container">
+            <!-- 消息将动态插入这里 -->
+        </main>
+
+        <!-- 底部输入区域 -->
+        <footer class="input-container">
+            <textarea class="chat-input" placeholder="继续对话..." rows="1"></textarea>
+            <button class="menu-button send">发送</button>
+        </footer>
+    </div>
+    <!-- 帮助弹窗 -->
+    <div class="help-modal hide">
+        <div class="help-content">
+            <div class="help-header">
+                <h2>深度阅读助手</h2>
+                <p class="intro">这是一个智能阅读助手，提供文本解释、内容消化和兼听等功能，让您的阅读体验更加丰富。</p>
+            </div>
+            
+            <div class="help-body">
+                <!-- 左侧：模型服务配置 -->
+                <div class="model-config">
+                    <h3>模型服务配置</h3>
+                    <div class="service-select">
+                        <label for="modalCurrentProvider">当前服务商</label>
+                        <select id="modalCurrentProvider">
+                            <option value="wenxin">文心一言</option>
+                            <option value="qianwen">通义千问</option>
+                            <option value="doubao">豆包</option>
+                            <option value="deepseek">DeepSeek</option>
+                        </select>
+                    </div>
+
+                    <div class="api-keys">
+                        <div class="api-key-group">
+                            <label for="modalWenxinKey">文心一言 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalWenxinKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="wenxin">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalQianwenKey">通义千问 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalQianwenKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="qianwen">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalDoubaoKey">豆包 API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalDoubaoKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="doubao">测试</button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-group">
+                            <label for="modalDeepseekKey">DeepSeek API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="modalDeepseekKey" placeholder="输入 API Key">
+                                <button class="test-btn" data-provider="deepseek">测试</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="modalSaveConfig" class="primary">保存设置</button>
+                    </div>
+                    <div id="modalStatusMsg" class="status-message"></div>
+                </div>
+
+                <!-- 右侧：快捷键列表 -->
+                <div class="shortcuts">
+                    <h3>快捷键指南</h3>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span class="key">A</span>
+                            <span class="description">增大字体</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">a</span>
+                            <span class="description">减小字体</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">D</span>
+                            <span class="description">切换暗色模式</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">T</span>
+                            <span class="description">切换显示模式（内嵌/悬浮）</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">E</span>
+                            <span class="description">解释选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">X</span>
+                            <span class="description">消化选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">M</span>
+                            <span class="description">兼听选中文本</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Esc</span>
+                            <span class="description">关闭菜单（悬浮模式）</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">?</span>
+                            <span class="description">显示此帮助</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="help-close">关闭</button>
+        </div>
+    </div>
+    <div class="fixed-pin">
+        <button class="pin-button" title="点击打开阅读助手"><span class="menu-icon"></span></button>
+    </div>
+</div>

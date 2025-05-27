@@ -1,135 +1,102 @@
 /**
  * @file content.js
- * @description 微信读书助手内容脚本，处理页面交互和AI功能调用
+ * @description 微信读书助手内容脚本 - 简化架构版本
  * @author lagrangee
- * @version 1.0.0
+ * @version 2.0.0
  */
+
+import { CONFIG } from '../utils/config.js';
+import { AssistantPanel } from './components/assistant-panel.js';
+import { ContentBridge } from './services/content-bridge.js';
+import { EventUtils } from './utils/index.js';
 
 /** @type {string} 当前阅读书籍名称 */
 let bookName;
 /** @type {string} 当前阅读书籍作者 */
 let authorName;
-/** @type {AIService} AI服务单例实例 */
-let AIService;
+/** @type {ContentBridge} 通信桥接实例 */
+let bridge;
+/** @type {AssistantPanel} 助手面板实例 */
+let assistantPanel;
 
 /**
  * 初始化内容脚本
  * @async
- * @throws {Error} AI服务初始化失败时抛出错误
+ * @throws {Error} 初始化失败时抛出错误
  */
 async function initContentScript() {
   try {
-    const pageTitle = document.title;
-    const parts = pageTitle.split('-').map(part => part.trim());
-    if (parts.length >= 3) {
-      bookName = parts[0];
-      authorName = parts.length === 3 ? parts[1] : parts[2];
-      console.log(`${window.CONFIG.LOG_PREFIX} 初始化成功 - 书名: ${bookName}, 作者: ${authorName}`);
-    } else {
-      console.warn(`${window.CONFIG.LOG_PREFIX} 无法解析页面标题: ${pageTitle}`);
-    }
+    // 解析页面信息
+    await parsePageInfo();
+    
+    // 初始化通信桥接
+    bridge = new ContentBridge();
+    
+    // 设置为全局变量供其他组件使用
+    window.contentBridge = bridge;
+    
+    // 在 bridge 可用后初始化助手面板
+    assistantPanel = await AssistantPanel.getInstance(bookName, authorName);
+    
+    // 设置事件监听
+    setupEventListeners();
+    // 设置页面监听器
+    setupPageListeners();
 
-    if (!isInCoverPage()) {
-      FloatingMenu.create(bookName, authorName);
-    }
-    setupCoverPageListener();
-
-    const { currentProvider = 'wenxin' } = await chrome.storage.sync.get('currentProvider');
-    ({ AIService } = await import(chrome.runtime.getURL('src/ai/service.js')));
-    window.AIService = AIService;
-    AIService.getInstance(currentProvider);
-    console.log(`${window.CONFIG.LOG_PREFIX} AI服务初始化成功: ${currentProvider}`);
-
-    setupMessageListener();
+    EventUtils.emit('page:change');
+    
+    console.log(`${CONFIG.LOG_PREFIX} Content script 初始化成功`);
   } catch (error) {
-    console.error(`${window.CONFIG.LOG_PREFIX} 初始化失败:`, error);
+    console.error(`${CONFIG.LOG_PREFIX} 初始化失败:`, error);
     throw new Error(`初始化失败: ${error.message}`);
   }
 }
 
 /**
- * 设置消息监听器
+ * 解析页面信息
  */
-function setupMessageListener() {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'UPDATE_SETTINGS') {
-      console.log(`${window.CONFIG.LOG_PREFIX} 更新AI设置:`, message.settings);
-      AIService.getInstance().updateSettings(message.settings);
-      sendResponse({ success: true });
-    }
-    return true;
-  });
-}
-
-/**
- * 判断节点是否为有效的复制按钮
- * @param {Node} node - DOM节点
- * @returns {boolean} 是否为有效的复制按钮
- */
-function isValidCopyButton(node) {
-  return (
-    node?.nodeType === Node.ELEMENT_NODE &&
-    node.classList?.contains(window.CONFIG.COPY_BUTTON_CLASS) &&
-    !node.hasListener
-  );
-}
-
-/**
- * 处理复制按钮点击事件
- * @async
- * @throws {Error} 剪贴板访问失败时抛出错误
- */
-async function handleCopyClick() {
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text?.trim()) {
-      console.warn(`${window.CONFIG.LOG_PREFIX} 剪贴板内容为空`);
-      return;
-    }
-    
-    FloatingMenu.getInstance().show({ text });
-  } catch (error) {
-    console.error(`${window.CONFIG.LOG_PREFIX} 剪贴板访问错误:`, error);
-    if (error.name === 'NotAllowedError') {
-      throw new Error('需要剪贴板访问权限，请在浏览器设置中允许访问');
-    }
-    throw new Error(`剪贴板访问失败: ${error.message}`);
+async function parsePageInfo() {
+  const pageTitle = document.title;
+  const parts = pageTitle.split('-').map(part => part.trim());
+  
+  if (parts.length >= 3) {
+    bookName = parts[0];
+    authorName = parts.length === 3 ? parts[1] : parts[2];
+    console.log(`${CONFIG.LOG_PREFIX} 页面信息 - 书名: ${bookName}, 作者: ${authorName}`);
+  } else {
+    console.warn(`${CONFIG.LOG_PREFIX} 无法解析页面标题: ${pageTitle}`);
+    bookName = '未知书籍';
+    authorName = '未知作者';
   }
 }
 
 /**
- * 在复制按钮上设置点击事件监听
- * @param {HTMLElement} button - 复制按钮节点
+ * 设置事件监听器
  */
-function setupCopyButton(button) {
-  if (!button) return;
-  button.addEventListener('click', handleCopyClick);
-  button.hasListener = true;
-  console.log(`${window.CONFIG.LOG_PREFIX} 复制按钮监听已设置`);
+function setupEventListeners() {
+
+  // 监听设置变更
+  EventUtils.on('settings:changed', (changes) => {
+    console.log(`${CONFIG.LOG_PREFIX} 设置已更新:`, changes);
+    handleSettingsChanged(changes);
+  });
 }
 
 /**
- * 监听动态生成的复制按钮
+ * 处理设置变更
+ * @param {Object} changes - 变更的设置
  */
-function setupCopyButtonListener() {
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (!mutation.addedNodes.length) continue;
+function handleSettingsChanged(changes) {
+  // 更新助手面板设置
+  assistantPanel.updateSettings(changes);
+}
 
-      for (const node of mutation.addedNodes) {
-        if (isValidCopyButton(node)) {
-          setupCopyButton(node);
-          observer.disconnect();
-          break;
-        }
-      }
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+/**
+ * 设置页面监听器
+ */
+function setupPageListeners() {
+  setupCoverPageListener();
+  setupTabVisibilityListener();
 }
 
 /**
@@ -152,26 +119,35 @@ function setupCoverPageListener() {
     mutations.forEach(mutation => {
       if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
         const displayValue = window.getComputedStyle(coverPage).display;
-        const floatingMenu = FloatingMenu.getInstance();
-
-        if (displayValue === 'none') {
-          if (floatingMenu) {
-            floatingMenu.setInitialPosition();
-          } else {
-            FloatingMenu.create(bookName, authorName);
-          }
-        } else {
-          floatingMenu?.hide({ needSaveSettings: false });
-        }
+        EventUtils.emit('page:change', { isCover: displayValue !== 'none' });
       }
     });
   });
   
-  // 配置观察选项
   observer.observe(coverPage, {
     attributes: true,
-    attributeFilter: ['style'], // 只观察style属性
+    attributeFilter: ['style']
   });
+}
+
+/**
+ * 监听标签页可见性变化
+ */
+function setupTabVisibilityListener() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // 标签页变为可见，可以进行一些状态检查
+      console.log(`${CONFIG.LOG_PREFIX} 标签页变为可见`);
+    }
+  });
+}
+
+/**
+ * 页面卸载前清理
+ */
+function cleanup() {
+  bridge?.destroy();
+  assistantPanel.destroy();
 }
 
 /**
@@ -179,14 +155,16 @@ function setupCoverPageListener() {
  */
 function initialize() {
   initContentScript().catch(error => {
-    console.error(`${window.CONFIG.LOG_PREFIX} 初始化错误:`, error);
+    console.error(`${CONFIG.LOG_PREFIX} 初始化错误:`, error);
   });
-  setupCopyButtonListener();
 }
+
+// 页面卸载前清理资源
+window.addEventListener('beforeunload', cleanup);
 
 // 页面加载完成后初始化
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initialize);
 } else {
-  setTimeout(initialize, 500); //even 0 works, but directly call initialize() does not work on coverpagelistener!
+  setTimeout(initialize, 500);
 }

@@ -3,7 +3,7 @@
  * @description AI 服务类，处理与各 AI 提供商的通信
  */
 
-import { CONFIG } from '/src/utils/config.esm.js';
+import { CONFIG } from '../utils/config.js';
 
 /**
  * AI 服务错误类

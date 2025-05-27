@@ -36,6 +36,138 @@ h2 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* 页面状态显示 */
+.status-display {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.status-value {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.status-value.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-value.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-value.info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+/* 控制按钮 */
+.control-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.btn.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+/* 页面错误显示 */
+.page-error {
+  text-align: center;
+  padding: 20px;
+}
+
+.page-error h3 {
+  color: #dc3545;
+  margin-bottom: 10px;
+}
+
+.page-error p {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+/* 健康检查结果 */
+.health-status {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.health-status h4 {
+  margin: 0 0 10px;
+  color: #495057;
+}
+
+.status-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-grid .status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-grid .label {
+  font-size: 14px;
+  color: #666;
+}
+
+.status-grid .value {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.status-grid .value.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-grid .value.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
 /* 表单元素样式 */
 select, input {
   width: 100%;
@@ -139,4 +271,10 @@ button:disabled {
   background-color: #f2dede;
   color: #a94442;
   border: 1px solid #ebccd1;
+}
+
+.status-message.info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
 } 

@@ -22,7 +22,7 @@
     "https://api.deepseek.com/*"
   ],
   "action": {
-    "default_popup": "src/popup/popup.html",
+    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "32": "assets/icons/icon32.png",
@@ -32,19 +32,13 @@
     }
   },
   "background": {
-    "service_worker": "src/background/background.js",
-    "type": "module"
+    "service_worker": "background.bundle.js"
   },
   "content_scripts": [
     {
       "matches": ["https://weread.qq.com/web/reader/*"],
-      "js": [
-        "src/lib/marked.min.js",
-        "src/utils/config.js",
-        "src/content/floating-menu.js",
-        "src/content/content.js"
-      ],
-      "css": ["src/content/floating-menu.css"],
+      "js": ["content-vendor.bundle.js", "content.bundle.js"],
+      "css": ["content/assistant-panel.css"],
       "run_at": "document_end"
     }
   ],
@@ -52,9 +46,7 @@
     {
       "resources": [
         "assets/icons/*",
-        "src/ai/service.js",
-        "src/utils/config.esm.js",
-        "src/content/floating-menu.html"
+        "content/assistant-panel.html"
       ],
       "matches": ["https://weread.qq.com/*"],
       "extension_types": ["extension", "content_script"]

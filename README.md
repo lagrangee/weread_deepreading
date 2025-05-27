@@ -16,10 +16,17 @@ src/
   │   └── service.js
   ├── background/    # 后台服务脚本
   │   └── background.js
-  ├── content/       # 内容脚本
-  │   ├── content.js
-  │   ├── floating-menu.html
-  │   └── floating-menu.css
+  ├── content/
+  │   ├── components/
+  │   │   ├── assistant-panel.js
+  │   │   ├── chat/
+  │   │   ├── help-modal/
+  │   │   └── interactive/
+  │   │   └── services/
+  │   ├── utils/
+  │   ├── assistant-panel.html
+  │   ├── assistant-panel.css
+  │   └── content.js
   ├── popup/         # 弹出窗口相关
   │   ├── popup.html
   │   ├── popup.css
