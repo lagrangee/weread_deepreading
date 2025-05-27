@@ -4,7 +4,7 @@
  */
 
 import { MESSAGE_TYPES, MESSAGE_STATUS, MESSAGE_SOURCE } from './message-types.js';
-import { CONFIG } from '../utils/config.js';
+import { CONFIG } from './config.js';
 
 export class BridgeService {
   constructor(source) {
@@ -21,6 +21,8 @@ export class BridgeService {
   init() {
     // 监听来自其他环境的消息
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.target !== this.source) return;
+
       this.handleMessage(message, sender, sendResponse);
       return true; // 保持消息通道开放
     });
@@ -46,42 +48,43 @@ export class BridgeService {
       timestamp: Date.now()
     };
 
-    console.log(`${CONFIG.LOG_PREFIX} BridgeService 发送消息:`, {
+    console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 发送消息:`, {
       id: messageId,
       type,
-      source: this.source,
-      target,
       hasTabId: !!tabId
     });
 
     return new Promise((resolve, reject) => {
       // 设置超时处理
       const timeoutId = setTimeout(() => {
-        console.log(`${CONFIG.LOG_PREFIX} BridgeService 消息超时:`, {
-          id: messageId,
-          type,
-          source: this.source
-        });
         this.pendingRequests.delete(messageId);
         reject(new Error(`消息超时: ${type}`));
       }, timeout);
 
       // 保存请求信息
       this.pendingRequests.set(messageId, {
-        resolve,
-        reject,
-        timeoutId,
-        type
+        resolve, reject,
+        timeoutId, type
       });
 
       // 发送消息
       try {
         if (tabId) {
           // 发送到指定tab的content script
-          chrome.tabs.sendMessage(tabId, message);
+          chrome.tabs.sendMessage(tabId, message, (response = {}) => {
+            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应:`, response);
+            this.pendingRequests.delete(messageId);
+            clearTimeout(timeoutId);
+            resolve(response);
+          });
         } else {
           // 发送到runtime (background或popup)
-          chrome.runtime.sendMessage(message);
+          chrome.runtime.sendMessage(message, (response = {}) => {
+            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应:`, response);
+            this.pendingRequests.delete(messageId);
+            clearTimeout(timeoutId);
+            resolve(response);
+          });
         }
       } catch (error) {
         console.error(`${CONFIG.LOG_PREFIX} BridgeService 发送失败:`, error);
@@ -99,63 +102,34 @@ export class BridgeService {
    * @param {Function} sendResponse - 响应函数
    */
   async handleMessage(message, sender, sendResponse) {
-    const { id, type, data, source, timestamp } = message;
+    const { id, type, data, source, target, timestamp } = message;
 
     try {
-      // 处理响应消息 - 这些是通过 chrome.runtime.sendMessage 直接返回的
-      if (message.isResponse && this.pendingRequests.has(id)) {
-        const request = this.pendingRequests.get(id);
-        this.pendingRequests.delete(id);
-        clearTimeout(request.timeoutId);
-        
-        console.log(`${CONFIG.LOG_PREFIX} BridgeService 收到响应:`, {
+      // 处理请求消息
+      const handler = this.eventHandlers.get(type);
+      if (handler === undefined)  throw new Error(`未知消息类型: ${type}`);
+      // 异步处理请求
+      handler(data, sender).then(response => {
+        console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${source} 返回响应:`, {
           id,
           type,
-          status: data.status,
-          hasError: !!data.error,
+          status: response?.status,
+          hasError: !!response?.error,
           source: this.source
         });
         
-        if (data.status === MESSAGE_STATUS.ERROR) {
-          console.log(`${CONFIG.LOG_PREFIX} BridgeService 处理错误响应:`, data.error);
-          request.reject(new Error(data.error));
-        } else {
-          request.resolve(data);
-        }
-        return;
-      }
-
-      // 处理请求消息
-      const handler = this.eventHandlers.get(type);
-      if (handler) {
-        // 异步处理请求
-        handler(data, sender).then(response => {
-          console.log(`${CONFIG.LOG_PREFIX} BridgeService 发送响应:`, {
-            id,
-            type,
-            status: response?.status,
-            hasError: !!response?.error,
-            source: this.source
-          });
-          
-          // 发送响应 - 使用 Chrome 原生的 sendResponse
-
-          const responseMessage = {
-            id,
-            type: `${type}_RESPONSE`,
-            status: response.status,
-            data: response.data,
-            error: response.error?.message,
-            source: this.source,
-            target: source,
-            isResponse: true,
-            timestamp: Date.now()
-          };
-          sendResponse(responseMessage);
-        })
-      } else {
-        throw new Error(`未知消息类型: ${type}`);
-      }
+        const responseMessage = {
+          id,
+          type: `${type}_RESPONSE`,
+          status: response.status,
+          data: response.data,
+          error: response.error?.message,
+          source: this.source,
+          target: source,
+          timestamp: Date.now()
+        };
+        sendResponse(responseMessage);
+      })
     } catch (error) {
       console.error('消息处理错误:', error);
       sendResponse({
@@ -165,7 +139,6 @@ export class BridgeService {
         error: error.message,
         source: this.source,
         target: source,
-        isResponse: true,
         timestamp: Date.now()
       });
     }
@@ -209,22 +182,6 @@ export class BridgeService {
     await Promise.allSettled(promises);
   }
 
-  /**
-   * 健康检查
-   * @param {string} target - 目标环境
-   * @returns {Promise<boolean>} 是否健康
-   */
-  async healthCheck(target) {
-    try {
-      await this.sendMessage(MESSAGE_TYPES.SYSTEM.HEALTH_CHECK, {}, { 
-        target,
-        timeout: 3000 
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 
   /**
    * 销毁服务

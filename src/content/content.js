@@ -5,7 +5,7 @@
  * @version 2.0.0
  */
 
-import { CONFIG } from '../utils/config.js';
+import { CONFIG } from '../shared/config.js';
 import { AssistantPanel } from './components/assistant-panel.js';
 import { ContentBridge } from './services/content-bridge.js';
 import { EventUtils } from './utils/index.js';
@@ -14,8 +14,6 @@ import { EventUtils } from './utils/index.js';
 let bookName;
 /** @type {string} 当前阅读书籍作者 */
 let authorName;
-/** @type {ContentBridge} 通信桥接实例 */
-let bridge;
 /** @type {AssistantPanel} 助手面板实例 */
 let assistantPanel;
 
@@ -29,11 +27,8 @@ async function initContentScript() {
     // 解析页面信息
     await parsePageInfo();
     
-    // 初始化通信桥接
-    bridge = new ContentBridge();
-    
     // 设置为全局变量供其他组件使用
-    window.contentBridge = bridge;
+    window.contentBridge = new ContentBridge();
     
     // 在 bridge 可用后初始化助手面板
     assistantPanel = await AssistantPanel.getInstance(bookName, authorName);
@@ -146,7 +141,7 @@ function setupTabVisibilityListener() {
  * 页面卸载前清理
  */
 function cleanup() {
-  bridge?.destroy();
+  window.contentBridge?.destroy();
   assistantPanel.destroy();
 }
 

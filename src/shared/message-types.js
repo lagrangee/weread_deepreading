@@ -14,7 +14,7 @@ export const BACKGROUND_MESSAGES = {
 };
 
 // 直接通信消息类型（Popup ↔ Content）
-export const DIRECT_MESSAGES = {
+export const POPUP_MESSAGES = {
   // 设置管理 - Content Script 直接操作 chrome.storage
   SETTINGS: {
     GET: 'SETTINGS_GET',       // 获取设置
@@ -26,12 +26,6 @@ export const DIRECT_MESSAGES = {
   SYSTEM: {
     STATUS: 'SYSTEM_STATUS'    // 获取系统状态（供 popup 显示）
   }
-};
-
-// 为了向后兼容，保留原有的MESSAGE_TYPES
-export const MESSAGE_TYPES = {
-  ...BACKGROUND_MESSAGES,
-  ...DIRECT_MESSAGES
 };
 
 export const MESSAGE_STATUS = {

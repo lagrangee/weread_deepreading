@@ -3,7 +3,7 @@
  * @description 事件处理相关的工具函数
  */
 
-import { CONFIG } from '../../utils/config.js';
+import { CONFIG } from '../../shared/config.js';
 
 export class EventUtils {
   /**

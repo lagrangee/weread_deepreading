@@ -3,7 +3,7 @@
  * @description AI聊天服务 - 简化版本，优雅处理连接失败
  */
 
-import { CONFIG } from '../../utils/config.js';
+import { CONFIG } from '../../shared/config.js';
 import { BACKGROUND_MESSAGES, MESSAGE_STATUS } from '../../shared/message-types.js';
 import { EventUtils } from '../utils/index.js';
 
@@ -24,9 +24,6 @@ export class ChatService {
     /** @type {boolean} 服务是否可用 */
     this.#isAvailable = true;
 
-    // 设置事件监听
-    this.setupEventListeners();
-    
     console.log(`${CONFIG.LOG_PREFIX} ChatService 初始化`, {
       bookName: this.#bookName,
       authorName: this.#authorName,
@@ -41,15 +38,6 @@ export class ChatService {
   #conversations;
   #isAvailable;
 
-  /**
-   * 设置事件监听器
-   */
-  setupEventListeners() {
-    // 监听AI响应
-    EventUtils.on('chat:response', (data) => {
-      this.handleChatResponse(data);
-    });
-  }
 
   /**
    * 发送聊天消息
@@ -93,10 +81,7 @@ export class ChatService {
 
       // 发送到background - 这里可能会抛出错误
       const response = await this.#bridge.sendChatRequest(chatData);
-
-      console.log(`${CONFIG.LOG_PREFIX} 收到AI响应:`, response);
-
-      if (response.status === 'success') {
+      if (response.status === MESSAGE_STATUS.SUCCESS) {
         // 保存对话历史
         this.addToConversation(conversationId, {
           role: 'user',
@@ -124,20 +109,6 @@ export class ChatService {
       console.error(`${CONFIG.LOG_PREFIX} AI聊天请求失败:`, error);
       throw error;
     }
-  }
-
-  /**
-   * 处理聊天响应
-   * @param {Object} data - 响应数据
-   */
-  handleChatResponse(data) {
-    console.log(`${CONFIG.LOG_PREFIX} 收到AI响应:`, data);
-    
-    // 触发响应事件
-    EventUtils.emit('ai:response', {
-      ...data,
-      timestamp: Date.now()
-    });
   }
 
   /**

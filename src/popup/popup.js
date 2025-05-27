@@ -3,34 +3,35 @@
  * @description 微信读书助手弹出窗口管理 - 简化架构版本
  */
 
-import { PopupBridge } from './services/popup-bridge.js';
+import { BridgeService } from '../shared/bridge-service.js';
+import { SettingsService } from '../shared/settings-service.js';
+import { BACKGROUND_MESSAGES, POPUP_MESSAGES, MESSAGE_STATUS } from '../shared/message-types.js';
+import { CONFIG } from '../shared/config.js';
 
 class PopupManager {
+  #settingsService = null;
+  #bridge = null;
+  #currentProvider = null;
+  #providers = null;
+  #apiKeys = null;
+  #providerSelect = null;
+
   constructor() {
-    this.providers = ['wenxin', 'qianwen', 'doubao', 'deepseek'];
-    this.providerNames = {
-      wenxin: '文心一言',
-      qianwen: '通义千问',
-      doubao: '豆包',
-      deepseek: 'DeepSeek'
-    };
-    this.bridge = null;
+    this.#bridge = new BridgeService('popup');
+    this.#settingsService = new SettingsService();
+    this.#providers = CONFIG.PROVIDERS;
+    this.#apiKeys = {};
+    this.#providerSelect = document.getElementById('currentProvider');
     this.init();
   }
 
   async init() {
     try {
-      console.log('Popup 初始化');
-      // 初始化通信桥接
-      this.bridge = new PopupBridge();
+      // this.bridge = new PopupBridge();
       
-      // 加载配置
-      await this.loadConfig();
-      
-      // 绑定事件
+      await this.#loadConfig();
+      this.#displaySavedInfos();
       this.bindEvents();
-      
-      // 设置桥接事件监听
       this.setupBridgeListeners();
       
       console.log('Popup 初始化成功');
@@ -43,63 +44,21 @@ class PopupManager {
    * 设置桥接事件监听
    */
   setupBridgeListeners() {
-    // 监听设置变更
-    this.bridge.on('settingsChanged', (event) => {
-      console.log('设置已变更:', event.detail);
-      this.handleSettingsChanged(event.detail);
-    });
   }
 
-  /**
-   * 处理设置变更
-   * @param {Object} changes - 变更的设置
-   */
-  handleSettingsChanged(changes) {
-    // 更新 UI 显示
-    if (changes.currentProvider) {
-      const providerSelect = document.getElementById('currentProvider');
-      if (providerSelect) {
-        providerSelect.value = changes.currentProvider;
-      }
-    }
-
-    if (changes.apiKeys) {
-      this.updateApiKeyInputs(changes.apiKeys);
-    }
-  }
-
-  /**
-   * 更新 API Key 输入框
-   * @param {Object} apiKeys - API Keys 对象
-   */
-  updateApiKeyInputs(apiKeys) {
-    this.providers.forEach(provider => {
+  #displaySavedInfos() {
+    Object.keys(this.#providers).forEach(provider => {
       const input = document.getElementById(`${provider}Key`);
-      if (input && apiKeys[provider]) {
-        input.value = apiKeys[provider];
+      if (input && this.#apiKeys[provider]) {
+        input.value = this.#apiKeys[provider];
       }
     });
+    this.#providerSelect.value = this.#currentProvider || CONFIG.DEFAULT_PROVIDER;
   }
 
-  async loadConfig() {
-    try {
-      const settings = await this.bridge.getSettings(['provider', 'apiKeys']);
-      
-      // 设置当前服务商
-      if (settings.provider) {
-        const providerSelect = document.getElementById('currentProvider');
-        if (providerSelect) {
-          providerSelect.value = settings.provider;
-        }
-      }
-
-      // 设置 API Keys
-      if (settings.apiKeys) {
-        this.updateApiKeyInputs(settings.apiKeys);
-      }
-    } catch (error) {
-      this.showStatus('加载配置失败：' + error.message, 'error');
-    }
+  async #loadConfig() {
+    this.#apiKeys = await this.#settingsService.loadAPIKeys();
+    this.#currentProvider = await this.#settingsService.loadProvider();
   }
 
   bindEvents() {
@@ -120,70 +79,40 @@ class PopupManager {
       });
     });
 
-    // 当前服务商选择变化
-    const providerSelect = document.getElementById('currentProvider');
-    if (providerSelect) {
-      providerSelect.addEventListener('change', (e) => {
-        const provider = e.target.value;
-        console.log('切换到服务商:', provider);
-      });
-    }
-
-    // 健康检查按钮
-    const healthCheckBtn = document.getElementById('healthCheck');
-    if (healthCheckBtn) {
-      healthCheckBtn.addEventListener('click', () => {
-        this.performHealthCheck();
-      });
-    }
+    this.#providerSelect.addEventListener('change', (e) => {
+      this.#currentProvider = e.target.value;
+    });
   }
 
   /**
    * 保存设置
    */
   async saveConfig() {
-    try {
-      const currentProvider = document.getElementById('currentProvider')?.value;
-      if (!currentProvider) {
-        throw new Error('请选择服务提供商');
+    // 收集所有非空的 API Keys
+    const apiKeys = {};
+    Object.keys(this.#providers).forEach(provider => {
+      const input = document.getElementById(`${provider}Key`);
+      const key = input?.value.trim();
+      if (key) {
+        apiKeys[provider] = key;
       }
+    });
 
-      const apiKeys = {};
-
-      // 收集所有非空的 API Keys
-      this.providers.forEach(provider => {
-        const input = document.getElementById(`${provider}Key`);
-        const key = input?.value.trim();
-        if (key) {
-          apiKeys[provider] = key;
-        }
-      });
-
-      // 验证当前选择的服务商是否有对应的 API Key
-      if (!apiKeys[currentProvider]) {
-        throw new Error(`请先设置 ${this.getProviderName(currentProvider)} 的 API Key`);
-      }
-
-      const settings = { 
-        currentProvider, 
-        apiKeys,
-        lastUsed: Date.now()
-      };
-
-      // 保存设置
-      const success = await this.bridge.saveSettings(settings);
-      
-      if (success) {
-        this.showStatus('设置已保存', 'success');
-        // 重新检查页面状态以更新显示
-        setTimeout(() => this.checkPageStatus(), 500);
-      } else {
-        throw new Error('保存设置失败');
-      }
-    } catch (error) {
-      console.error('保存设置失败:', error);
-      this.showStatus(error.message || '保存设置失败', 'error');
+    // 验证当前选择的服务商是否有对应的 API Key
+    if (!apiKeys[this.#currentProvider]) {
+      this.showStatus(`请先设置 ${this.getProviderName(this.#currentProvider)} 的 API Key`, 'error');
+      return;
     }
+
+    await this.#settingsService.saveAPIKeys(apiKeys);
+    await this.#settingsService.saveProvider(this.#currentProvider);
+    
+    this.showStatus('设置已保存', 'success');
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length > 0) {
+      await this.#bridge.sendMessage(POPUP_MESSAGES.SETTINGS.CHANGED, { provider: this.#currentProvider }, { target: 'content', tabId: tabs[0].id });
+    }
+    window.close();
   }
 
   /**
@@ -191,44 +120,37 @@ class PopupManager {
    * @param {string} provider - 服务提供商
    * @param {string} key - API Key
    */
-  async testApiKey(provider, key) {
-    if (!key) {
+  async testApiKey(provider, apiKey) {
+    if (!apiKey) {
       this.showStatus(`请输入 ${this.getProviderName(provider)} 的 API Key`, 'error');
       return;
     }
 
+    const testBtn = document.querySelector(`[data-provider="${provider}"]`);
+    const originalText = testBtn.textContent;
+    testBtn.textContent = '测试中...';
+    testBtn.disabled = true;
+
     try {
-      // 显示测试中状态
-      const testBtn = document.querySelector(`[data-provider="${provider}"]`);
-      const originalText = testBtn.textContent;
-      testBtn.textContent = '测试中...';
-      testBtn.disabled = true;
-
       // 发送测试请求
-      const result = await this.bridge.testApiConnection(provider, key);
+      const response = await this.#bridge.sendMessage(BACKGROUND_MESSAGES.CHAT.TEST_API_KEY, { provider, apiKey }, { target: 'background' });
 
-      if (result.success) {
+      if (response.status === MESSAGE_STATUS.SUCCESS) {
         this.showStatus(`${this.getProviderName(provider)} API Key 测试成功`, 'success');
       } else {
-        this.showStatus(`${this.getProviderName(provider)} API Key 测试失败：${result.message}`, 'error');
+        throw new Error(response.error || 'API Key 测试失败');
       }
-
-      // 恢复按钮状态
-      testBtn.textContent = originalText;
-      testBtn.disabled = false;
     } catch (error) {
       this.showStatus(`测试失败：${error.message}`, 'error');
-      
-      // 恢复按钮状态
-      const testBtn = document.querySelector(`[data-provider="${provider}"]`);
-      testBtn.textContent = '测试';
+    } finally {
+      testBtn.textContent = originalText;
       testBtn.disabled = false;
     }
   }
 
 
   getProviderName(provider) {
-    return this.providerNames[provider] || provider;
+    return this.#providers[provider] || provider;
   }
 
   showStatus(message, type) {
@@ -251,16 +173,13 @@ class PopupManager {
    * 清理资源
    */
   destroy() {
-    this.bridge?.destroy();
+    this.#bridge?.destroy();
   }
 }
 
 // 初始化
 function initPopup() {
-  console.log('Popup 脚本加载成功');
   const manager = new PopupManager();
-  
-  // 页面卸载前清理
   window.addEventListener('beforeunload', () => {
     manager.destroy();
   });

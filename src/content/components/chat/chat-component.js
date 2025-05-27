@@ -3,7 +3,7 @@
  * @description 聊天组件，处理消息显示、加载状态和错误处理
  */
 
-import { CONFIG } from '../../../utils/config.js';
+import { CONFIG } from '../../../shared/config.js';
 import { marked } from '../../../lib/marked.min.js';
 
 export class ChatComponent {

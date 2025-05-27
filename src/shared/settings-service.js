@@ -2,7 +2,7 @@
  * @file settings-service.js
  * @description 处理所有设置相关的功能，包括位置、模式、字体等设置的保存和加载
  */
-import { CONFIG } from '../../utils/config.js';
+import { CONFIG } from './config.js';
 
 export class SettingsService {
   /** @type {string} 存储键名前缀 */
@@ -139,6 +139,14 @@ export class SettingsService {
 
   async saveProvider(provider) {
     await this.#saveSettings('provider', provider);
+  }
+
+  async loadAPIKeys() {
+    return await this.#loadSettings('apiKeys');
+  }
+
+  async saveAPIKeys(apiKeys) {
+    await this.#saveSettings('apiKeys', apiKeys);
   }
 
   /**

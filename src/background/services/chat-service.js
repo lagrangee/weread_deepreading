@@ -3,7 +3,7 @@
  * @description AI 聊天服务，处理各种 AI 请求
  */
 
-import { CONFIG } from '../../utils/config.js';
+import { CONFIG } from '../../shared/config.js';
 
 export class ChatService {
   constructor() {
@@ -16,13 +16,12 @@ export class ChatService {
    * @returns {Promise<Object>} 处理结果
    */
   async processRequest(data) {
-    const { provider, text, action = 'chat', book, author, isTest = false, apiKey } = data;
+    const { provider, text, action = 'chat', book, author, isTest = false, apiKey, context } = data;
 
     try {
       if ( provider === undefined) {
         throw new Error('provider is undefined');
       }
-      // 如果是测试请求
       if (isTest) {
         return await this.testApiConnection(provider, apiKey);
       }
@@ -34,7 +33,7 @@ export class ChatService {
       }
 
       // 构建提示词
-      const { systemPrompt, userPrompt } = this.buildPrompts(action, text, book, author);
+      const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context );
 
       // 发送 AI 请求
       const response = await this.sendAIRequest(provider, key, systemPrompt, userPrompt);
@@ -59,7 +58,7 @@ export class ChatService {
    * @param {string} author - 作者
    * @returns {Object} 提示词对象
    */
-  buildPrompts(action, text, book, author) {
+  #buildPrompts(action, text, book, author, context = []) {
     // 获取系统提示词模板
     const systemTemplate = CONFIG.PROMPTS.SYSTEM[action] || CONFIG.PROMPTS.SYSTEM.chat;
     const userTemplate = CONFIG.PROMPTS.USER[action] || CONFIG.PROMPTS.USER.chat;
@@ -72,9 +71,14 @@ export class ChatService {
     const userPrompt = userTemplate
       .replace('{book}', book || '未知书籍')
       .replace('{author}', author || '未知作者')
-      .replace('{text}', text);
+      .replace('{text}', text)
+      .replace('{context}', this.#buildContext(context));
 
     return { systemPrompt, userPrompt };
+  }
+
+  #buildContext(context) {
+    return context.map(item => `${item.role == "user" ? "我问:" : "你的回答:"}: ${item.content}`).join('\n');
   }
 
   /**

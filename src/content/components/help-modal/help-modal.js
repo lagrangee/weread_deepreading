@@ -3,9 +3,9 @@
  * @description 帮助模态框组件
  */
 
-import { CONFIG } from '/src/utils/config.js';
-import { MESSAGE_STATUS } from '/src/shared/message-types.js';
-import { EventUtils } from '/src/content/utils/event-utils.js';
+import { CONFIG } from '../../../shared/config.js';
+import { MESSAGE_STATUS } from '../../../shared/message-types.js';
+import { EventUtils } from '../../utils/event-utils.js';
 
 export class HelpModal {
   /** @type {HTMLElement} 模态框元素 */

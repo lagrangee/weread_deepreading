@@ -3,14 +3,14 @@
  * @description 主面板组件，整合所有子组件和服务
  */
 
-import { CONFIG } from '../../utils/config.js';
+import { CONFIG } from '../../shared/config.js';
 import { MenuDrag } from './interactive/drag/menu-drag.js';
 import { PinDrag } from './interactive/drag/pin-drag.js';
 import { MenuResize } from './interactive/resize/menu-resize.js';
 import { ChatComponent } from './chat/chat-component.js';
 import { HelpModal } from './help-modal/help-modal.js';
 import { ChatService } from '../services/chat-service.js';
-import { SettingsService } from '../services/settings-service.js';
+import { SettingsService } from '../../shared/settings-service.js';
 import { DOMUtils, EventUtils } from '../utils/index.js';
 
 const MODE_HANDLERS = {

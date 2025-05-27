@@ -3,91 +3,70 @@
  * @description 微信读书助手后台脚本，使用简化的通信架构
  */
 
-import { MessageRouter } from './message-router.js';
-import { CONFIG } from '../utils/config.js';
-import { BACKGROUND_MESSAGES } from '../shared/message-types.js';
+import { CONFIG } from '../shared/config.js';
+import { BridgeService } from '../shared/bridge-service.js';
+import { BACKGROUND_MESSAGES, MESSAGE_STATUS } from '../shared/message-types.js';
+import { ChatService } from './services/chat-service.js';
+
+export class MessageRouter {
+  constructor() {
+    this.bridge = new BridgeService('background');
+    this.chatService = new ChatService();
+    
+    this.setupRoutes();
+  }
+
+  /**
+   * 设置消息路由 - 仅 AI 相关
+   */
+  setupRoutes() {
+    // AI聊天路由 - 唯一的 Background 功能
+    this.bridge.on(BACKGROUND_MESSAGES.CHAT.REQUEST, async (data, sender) => {
+      console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 CHAT_REQUEST:`, data);
+      try {
+        const response = await this.chatService.processRequest(data);
+        return {
+          status: MESSAGE_STATUS.SUCCESS,
+          data: response
+        };
+      } catch (error) {
+        console.error(`${CONFIG.LOG_PREFIX} AI聊天处理失败:`, error);
+        return {
+          status: MESSAGE_STATUS.ERROR,
+          error
+        };
+      }
+    });
+
+    this.bridge.on(BACKGROUND_MESSAGES.CHAT.TEST_API_KEY, async (data, sender) => {
+      console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 TEST_API_KEY:`, data);
+      try {
+        const response = await this.chatService.processRequest({
+          provider: data.provider,
+          apiKey: data.apiKey,
+          isTest: true,
+        });
+        return {
+          status: MESSAGE_STATUS.SUCCESS,
+          data: response
+        };
+      } catch (error) {
+        console.error(`${CONFIG.LOG_PREFIX} API Key 测试失败:`, error);
+        return {
+          status: MESSAGE_STATUS.ERROR,
+          error,
+        };
+      }
+    });
+  }
+
+  /**
+   * 销毁路由器
+   */
+  destroy() {
+    this.bridge.destroy();
+  }
+} 
 
 // 初始化消息路由器
 const messageRouter = new MessageRouter();
-
-console.log(`${CONFIG.LOG_PREFIX} Background script initialized`);
-
-
-// 简化的消息处理 - 直接处理来自 content 的请求
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  return;
-  console.log(`${CONFIG.LOG_PREFIX} Background 收到消息:`, request);
-  
-  // 处理聊天请求
-  if (request.type === BACKGROUND_MESSAGES.CHAT.REQUEST) {
-    console.log(`${CONFIG.LOG_PREFIX} 处理聊天请求:`, request.data);
-    
-    // 异步处理聊天请求
-    messageRouter.chatService.processRequest(request.data)
-      .then(response => {
-        console.log(`${CONFIG.LOG_PREFIX} 聊天处理成功:`, response);
-        sendResponse({
-          status: 'success',
-          data: response
-        });
-      })
-      .catch(error => {
-        console.error(`${CONFIG.LOG_PREFIX} 聊天处理失败:`, error);
-        sendResponse({
-          status: 'error',
-          error: error.message
-        });
-      });
-    
-    return true; // 保持消息通道开放以支持异步响应
-  }
-  
-  // 保持对旧版API的兼容性（临时）
-  if (request.type && !request.id) {
-    console.warn(`${CONFIG.LOG_PREFIX} 检测到旧版消息格式:`, request.type);
-    
-    switch (request.type) {
-      case 'AI_CHAT':
-        // 转换为新格式并处理
-        messageRouter.chatService.processRequest({
-          ...request.data,
-          requestId: Date.now().toString()
-        }).then(response => {
-          sendResponse(response);
-        }).catch(error => {
-          sendResponse({ 
-            error: {
-              message: error.message,
-              type: error.type
-            }
-          });
-        });
-        return true;
-        
-      case 'TEST_API_KEY':
-        // 转换为新格式并处理
-        messageRouter.chatService.processRequest({
-          provider: request.provider,
-          apiKey: request.key,
-          text: 'test',
-          isTest: true
-        }).then(response => {
-          sendResponse(response);
-        }).catch(error => {
-          sendResponse({
-            success: false,
-            error: {
-              message: error.message,
-              type: error.type
-            }
-          });
-        });
-        return true;
-        
-      case 'UPDATE_SETTINGS':
-        // 处理设置更新
-        sendResponse({ success: true });
-        return true;
-    }
-  }
-}); 
