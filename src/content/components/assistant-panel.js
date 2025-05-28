@@ -551,7 +551,6 @@ export class AssistantPanel {
 
     this.#settingsService.saveShowing(true);
     this.#isShowing = true;
-    EventUtils.emit('panel:show', { text: this.#currentText });
   }
 
   /**
@@ -568,8 +567,6 @@ export class AssistantPanel {
     
     if (this.#mode === 'inline') 
       this.#resetBodyWidth();
-
-    EventUtils.emit('panel:hide');
   }
 
   /**
@@ -589,8 +586,6 @@ export class AssistantPanel {
     if (resize) {
       this.#resetBodyWidth();
     }
-
-    EventUtils.emit('panel:mode', { mode: 'floating' });
   }
 
   /**
@@ -610,8 +605,6 @@ export class AssistantPanel {
     if (resize) {
       this.#resizeBodyWidth();
     }
-
-    EventUtils.emit('panel:mode', { mode: 'inline' });
   }
 
   /**
@@ -628,60 +621,6 @@ export class AssistantPanel {
   #resetBodyWidth() {
     document.body.style.width = '100vw';
     window.dispatchEvent(new Event('resize'));
-  }
-
-  /**
-   * 更新设置（响应新通信架构的设置变更）
-   * @param {Object} changes - 变更的设置
-   */
-  updateSettings(changes) {
-    // 处理字体大小变更
-    if (changes.fontSize !== undefined) {
-      this.#setFontSise({ fontSize: changes.fontSize });
-    }
-
-    // 处理暗黑模式变更
-    if (changes.darkMode !== undefined) {
-      this.#wrapperElement.classList.toggle('dark-mode', changes.darkMode);
-    }
-
-    // 处理面板位置变更
-    if (changes.panelPosition) {
-      Object.assign(this.#contentElement.style, changes.panelPosition);
-    }
-
-
-    console.log(`${CONFIG.LOG_PREFIX} 面板设置已更新:`, Object.keys(changes));
-  }
-
-  /**
-   * 获取当前面板状态
-   * @returns {Object} 面板状态信息
-   */
-  getStatus() {
-    return {
-      isShowing: this.#isShowing,
-      mode: this.#mode,
-      currentText: this.#currentText,
-      bookName: this.#bookName,
-      authorName: this.#authorName,
-      position: {
-        left: this.#contentElement.style.left,
-        top: this.#contentElement.style.top
-      },
-      size: {
-        width: this.#contentElement.style.width,
-        height: this.#contentElement.style.height
-      }
-    };
-  }
-
-  /**
-   * 获取 ChatService 实例
-   * @returns {ChatService} ChatService 实例
-   */
-  get chatService() {
-    return this.#chatService;
   }
 
   /**

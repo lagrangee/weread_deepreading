@@ -19,6 +19,7 @@ export class ContentBridge {
    * 设置消息路由
    */
   setupRoutes() {
+    // messages from popup
     this.#bridge.on(POPUP_MESSAGES.SETTINGS.CHANGED, async (changes, sender) => {
       if (changes.provider) {
         EventUtils.emit('update:provider', changes.provider);
@@ -77,25 +78,6 @@ export class ContentBridge {
   isConnected() {
     // 简单检查bridge是否存在，不进行复杂的连接测试
     return !!this.#bridge;
-  }
-
-  /**
-   * 检查AI服务是否可用
-   * @returns {Promise<boolean>} 是否可用
-   */
-  async isAIServiceAvailable() {
-    try {
-      // 发送一个简单的测试请求
-      await this.#bridge.sendMessage(
-        'PING', 
-        { test: true },
-        { timeout: 3000 }
-      );
-      return true;
-    } catch (error) {
-      console.warn(`${CONFIG.LOG_PREFIX} AI服务不可用:`, error);
-      return false;
-    }
   }
 
   /**

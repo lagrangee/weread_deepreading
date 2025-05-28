@@ -63,7 +63,7 @@ export class ChatComponent {
   /**
    * 添加消息到聊天界面
    * @param {string} content - 消息内容
-   * @param {'user'|'assistant'|'error'} type - 消息类型
+   * @param {'user'|'ai'|'error'} type - 消息类型
    */
   appendMessage(content, type) {
     const messageElement = document.createElement('div');

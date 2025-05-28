@@ -38,7 +38,7 @@ async function initContentScript() {
     // 设置页面监听器
     setupPageListeners();
 
-    EventUtils.emit('page:change');
+    EventUtils.emit('page:change', {isCover: isInCoverPage()});
     
     console.log(`${CONFIG.LOG_PREFIX} Content script 初始化成功`);
   } catch (error) {
@@ -63,27 +63,6 @@ async function parsePageInfo() {
     bookName = '未知书籍';
     authorName = '未知作者';
   }
-}
-
-/**
- * 设置事件监听器
- */
-function setupEventListeners() {
-
-  // 监听设置变更
-  EventUtils.on('settings:changed', (changes) => {
-    console.log(`${CONFIG.LOG_PREFIX} 设置已更新:`, changes);
-    handleSettingsChanged(changes);
-  });
-}
-
-/**
- * 处理设置变更
- * @param {Object} changes - 变更的设置
- */
-function handleSettingsChanged(changes) {
-  // 更新助手面板设置
-  assistantPanel.updateSettings(changes);
 }
 
 /**

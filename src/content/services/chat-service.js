@@ -165,29 +165,6 @@ export class ChatService {
   }
 
   /**
-   * 尝试恢复连接
-   * @returns {Promise<boolean>} 是否成功恢复
-   */
-  async tryReconnect() {
-    try {
-      // 发送一个简单的测试请求
-      await this.#bridge.sendChatRequest({
-        text: 'ping',
-        type: 'test',
-        isTest: true
-      });
-      
-      this.#isAvailable = true;
-      console.log(`${CONFIG.LOG_PREFIX} AI服务连接已恢复`);
-      return true;
-    } catch (error) {
-      console.warn(`${CONFIG.LOG_PREFIX} AI服务连接恢复失败:`, error);
-      this.#isAvailable = false;
-      return false;
-    }
-  }
-
-  /**
    * 获取服务状态
    * @returns {Object} 服务状态信息
    */
