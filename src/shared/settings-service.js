@@ -96,7 +96,7 @@ export class SettingsService {
    * @returns {Promise<Object>} 字体信息
    */
   async loadFontSize() {
-    return await this.#loadSettings('font');
+    return await this.#loadSettings('fontSize');
   }
 
   /**

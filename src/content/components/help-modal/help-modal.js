@@ -6,6 +6,7 @@
 import { CONFIG } from '../../../shared/config.js';
 import { MESSAGE_STATUS } from '../../../shared/message-types.js';
 import { EventUtils } from '../../utils/event-utils.js';
+import { SettingsService } from '../../../shared/settings-service.js';
 
 export class HelpModal {
   /** @type {HTMLElement} 模态框元素 */
@@ -32,6 +33,9 @@ export class HelpModal {
   /** @type {Map<string, HTMLButtonElement>} 测试按钮映射 */
   #testButtons;
 
+  /** @type {SettingsService} 设置服务 */
+  #settingsService;
+
   /** @type {Object} 当前设置 */
   #currentSettings;
 
@@ -43,6 +47,7 @@ export class HelpModal {
     this.#apiKeyInputs = new Map();
     this.#testButtons = new Map();
     this.#currentSettings = {};
+    this.#settingsService = new SettingsService();
     this.#initialize();
     this.isShowing = false;
   }
@@ -125,18 +130,19 @@ export class HelpModal {
       this.#showStatus('正在加载配置...', 'info');
       
       // 通过 ContentBridge 获取设置
-      const settings = await window.contentBridge.getSettingsFromStorage([
-        'provider', 
-        'apiKeys'
-      ]);
+      const apiKeys = await this.#settingsService.loadAPIKeys();
+      const provider = await this.#settingsService.loadProvider();
       
-      this.#currentSettings = settings;
+      this.#currentSettings = {
+        provider,
+        apiKeys
+      };
       
       // 更新界面
-      this.#updateUI(settings);
+      this.#updateUI();
       this.#showStatus('配置加载完成', 'success');
       
-      console.log(`${CONFIG.LOG_PREFIX} 帮助模态框配置加载完成:`, settings);
+      console.log(`${CONFIG.LOG_PREFIX} 帮助模态框配置加载完成:`, this.#currentSettings);
     } catch (error) {
       console.error(`${CONFIG.LOG_PREFIX} 加载配置失败:`, error);
       this.#showStatus('加载配置失败', 'error');
@@ -148,16 +154,16 @@ export class HelpModal {
    * @private
    * @param {Object} settings - 设置对象
    */
-  #updateUI(settings) {
+  #updateUI() {
     // 更新当前服务商
-    if (settings.provider) {
-      this.#providerSelect.value = settings.provider;
+    if (this.#currentSettings.provider) {
+      this.#providerSelect.value = this.#currentSettings.provider;
     }
 
     // 更新 API Keys
-    if (settings.apiKeys) {
+    if (this.#currentSettings.apiKeys) {
       this.#apiKeyInputs.forEach((input, provider) => {
-        const apiKey = settings.apiKeys[provider];
+        const apiKey = this.#currentSettings.apiKeys[provider];
         if (apiKey) {
           input.value = apiKey;
           // 显示部分 API Key（隐私保护）
@@ -292,24 +298,25 @@ export class HelpModal {
       this.#showStatus('正在保存设置...', 'info');
 
       // 收集设置数据
-      const settings = {
-        provider: this.#providerSelect.value,
-        apiKeys: {}
-      };
+      const apiKeys = {};
 
       // 收集 API Keys
       this.#apiKeyInputs.forEach((input, provider) => {
         const apiKey = input.dataset.fullKey || input.value;
         if (apiKey && apiKey.trim()) {
-          settings.apiKeys[provider] = apiKey.trim();
+          apiKeys[provider] = apiKey.trim();
         }
       });
 
       // 保存设置
-      await window.contentBridge.saveSettingsToStorage(settings);
+      await this.#settingsService.saveAPIKeys(apiKeys);
+      await this.#settingsService.saveProvider(this.#providerSelect.value);
 
       // 更新当前设置
-      this.#currentSettings = { ...this.#currentSettings, ...settings };
+      this.#currentSettings = {
+        provider: this.#providerSelect.value,
+        apiKeys
+      };
 
       this.#showStatus('设置保存成功', 'success');
       
@@ -317,10 +324,10 @@ export class HelpModal {
       this.#saveButton.textContent = '保存设置';
       this.#saveButton.classList.remove('changed');
 
-      console.log(`${CONFIG.LOG_PREFIX} 设置保存成功:`, settings);
+      console.log(`${CONFIG.LOG_PREFIX} 设置保存成功:`, this.#currentSettings);
 
       // 通知其他组件设置已更新
-      EventUtils.emit('update:provider', settings.provider);
+      EventUtils.emit('update:provider', this.#currentSettings.provider);
 
     } catch (error) {
       console.error(`${CONFIG.LOG_PREFIX} 保存设置失败:`, error);
@@ -370,15 +377,6 @@ export class HelpModal {
     this.#modalElement.classList.add('hide');
     document.removeEventListener('keydown', this.#handleEscapeKey);
     this.isShowing = false;
-  }
-
-  /**
-   * 更新模型配置
-   * @param {Object} config - 模型配置
-   */
-  updateConfig(config) {
-    this.#currentSettings = { ...this.#currentSettings, ...config };
-    this.#updateUI(this.#currentSettings);
   }
 
   /**

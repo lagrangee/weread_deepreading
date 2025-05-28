@@ -85,18 +85,19 @@ export class ChatService {
         // 保存对话历史
         this.addToConversation(conversationId, {
           role: 'user',
-          content: text,
+          content: response.data.userPrompt,
           timestamp: Date.now()
         });
 
         this.addToConversation(conversationId, {
-          role: 'assistant',
+          role: 'ai',
           content: response.data.content || response.data.text,
           timestamp: Date.now()
         });
 
         return {
           success: true,
+          userPrompt: response.data.userPrompt,
           content: response.data.content || response.data.text,
           provider: response.data.provider,
           conversationId

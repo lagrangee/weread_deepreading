@@ -39,6 +39,7 @@ export class ChatService {
       const response = await this.sendAIRequest(provider, key, systemPrompt, userPrompt);
 
       return {
+        userPrompt,
         text: response,
         provider,
         action,

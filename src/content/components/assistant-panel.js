@@ -196,8 +196,17 @@ export class AssistantPanel {
   }
 
   #handleKeyDown = (e) => {
-    // 如果是在聊天输入框中，不处理快捷键
-    if (e.target.classList.contains('chat-input') || this.#helpModal.isShowing) return;    
+
+    if (this.#helpModal.isShowing) return;    
+
+    if (e.target.classList.contains('chat-input')){
+      if (e.key === 'Enter') {
+        this.#handleSend();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
 
     switch (e.key.toLowerCase()) {
       case 't': this.#toggleMode();
@@ -223,10 +232,6 @@ export class AssistantPanel {
         break;
 
       case '?': this.#helpModal.show();
-        break;
-      
-      case 'enter':
-        e.target.classList.contains('chat-input') && this.#handleSend();
         break;
     }
   }
@@ -416,6 +421,7 @@ export class AssistantPanel {
     const message = input.value.trim();
     
     if (!message) return;
+    input.value = '';
     
     try {
       this.#chatComponent.appendMessage(message, 'user');
@@ -433,8 +439,6 @@ export class AssistantPanel {
     } catch (error) {
       this.#chatComponent.showError('发送消息失败', error);
     }
-    
-    input.value = '';
   }
 
   /**
