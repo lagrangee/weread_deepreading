@@ -33,8 +33,6 @@ async function initContentScript() {
     // 在 bridge 可用后初始化助手面板
     assistantPanel = await AssistantPanel.getInstance(bookName, authorName);
     
-    // 设置事件监听
-    setupEventListeners();
     // 设置页面监听器
     setupPageListeners();
 
