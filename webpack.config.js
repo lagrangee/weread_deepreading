@@ -99,8 +99,7 @@ module.exports = (env, argv) => {
             { from: 'manifest.json', to: 'manifest.json' },
             { from: 'src/popup/popup.html', to: 'popup/popup.html' },
             { from: 'src/content/assistant-panel.html', to: 'content/assistant-panel.html' },
-            { from: 'assets/icons', to: 'assets/icons' },
-            { from: 'docs/communication-guide.md', to: 'docs/communication-guide.md' }
+            { from: 'assets/icons', to: 'assets/icons' }
           ]
         })
       ],

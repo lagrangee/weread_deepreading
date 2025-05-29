@@ -4,17 +4,18 @@
   "description": "微信读书深度阅读助手是一个Chrome浏览器扩展，为微信读书用户提供智能阅读辅助功能，包括文本解释、内容消化、兼听等功能。",
   "main": "index.js",
   "scripts": {
-    "clean": "rimraf dist",
-    "dev": "npm run clean && webpack --mode development --watch",
-    "start": "npm run dev",
+    "dev": "webpack --mode development --watch",
     "build": "npm run clean && webpack --mode production",
     "build:dev": "npm run clean && webpack --mode development",
-    "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint src/**/*.js --fix",
+    "clean": "rimraf dist",
+    "start": "npm run clean && npm run build:dev && npm run dev",
     "test": "jest",
     "test:watch": "jest --watch",
-    "package": "npm run build && cd dist && zip -r ../weread-deepreading-v$npm_package_version.zip .",
-    "analyze": "webpack-bundle-analyzer stats.json"
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix",
+    "package": "npm run build && node scripts/package.js",
+    "pre-publish": "node scripts/pre-publish-check.js",
+    "publish-ready": "npm run pre-publish && echo '\n🎯 准备发布到Chrome Web Store!'"
   },
   "repository": {
     "type": "git",
@@ -36,6 +37,7 @@
     "@babel/plugin-transform-runtime": "^7.23.7",
     "@babel/preset-env": "^7.23.7",
     "@babel/runtime": "^7.23.7",
+    "archiver": "^7.0.1",
     "autoprefixer": "^10.4.16",
     "babel-loader": "^9.1.3",
     "copy-webpack-plugin": "^11.0.0",

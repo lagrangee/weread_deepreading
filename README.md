@@ -1,226 +1,364 @@
-# 微信读书助手 (WeRead Assistant)
+# 微信读书深度阅读助手 (WeRead Deep Reading Assistant)
 
-## 项目介绍
-微信读书AI助手是一个Chrome浏览器扩展，为微信读书用户提供智能阅读辅助功能，包括文本解释、内容消化、兼听等功能。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/lagrangee/weread_deepreading)
 
-## 功能特性
-- 智能文本解释：对选中文本进行智能解释和分析
-- 内容消化：将长文本转化为易于理解的摘要
-- 兼听功能：支持文本到语音的转换
-- 跨设备同步：支持阅读进度和笔记的跨设备同步
+## 📖 项目介绍
 
-## 项目结构
+微信读书深度阅读助手是一个Chrome浏览器扩展，通过集成多个AI大模型，为微信读书用户提供智能阅读辅助功能。支持文本解释、内容消化、多角度分析等功能，让阅读更加深入和高效。
+
+## ✨ 核心功能
+
+### 🎯 三大AI助手功能
+
+1. **💡 解释一下 (Explain)**
+   - 对选中文本进行术语解释、背景补充
+   - 快捷键：`E`
+   - 适用场景：专业术语、人名、概念等
+
+2. **📖 消化一下 (Digest)**  
+   - 将复杂内容转化为易理解的解读
+   - 包含：核心观点、思想流派、历史演进
+   - 快捷键：`X`
+   - 适用场景：长段落、复杂理论
+
+3. **👂 兼听一下 (Analyze)**
+   - 提供多角度分析和不同观点
+   - 包含：支持/反对论据、学者观点、扩展阅读
+   - 快捷键：`M`
+   - 适用场景：争议性内容、观点分析
+
+### 🔧 技术特性
+
+- **多AI服务商支持**：文心一言、通义千问、豆包、DeepSeek
+- **智能面板系统**：浮动/内嵌模式切换，支持拖拽和调整大小
+- **会话式交互**：支持连续对话，保持上下文
+- **Markdown渲染**：富文本显示，支持代码高亮
+- **本地存储**：API Key安全存储，设置自动同步
+- **快捷键支持**：全局快捷键，提升使用效率
+
+## 🏗️ 项目架构
+
+### 📁 目录结构
+
 ```
 src/
-  ├── ai/            # AI服务相关代码
-  │   └── service.js
-  ├── background/    # 后台服务脚本
-  │   └── background.js
-  ├── content/
-  │   ├── components/
-  │   │   ├── assistant-panel.js
-  │   │   ├── chat/
-  │   │   ├── help-modal/
-  │   │   └── interactive/
-  │   │   └── services/
-  │   ├── utils/
-  │   ├── assistant-panel.html
-  │   ├── assistant-panel.css
-  │   └── content.js
-  ├── popup/         # 弹出窗口相关
-  │   ├── popup.html
-  │   ├── popup.css
-  │   └── popup.js
-  └── utils/         # 工具函数
-      ├── config.js
-      └── config.esm.js
-assets/              # 静态资源
-  └── icons/         # 图标文件
+├── shared/                 # 共享模块
+│   ├── config.js          # 全局配置
+│   ├── message-types.js   # 消息类型定义
+│   ├── bridge-service.js  # 通信桥接服务
+│   └── settings-service.js # 设置管理服务
+├── background/             # 后台脚本
+│   ├── background.js      # 主入口
+│   └── services/
+│       └── chat-service.js # AI聊天服务
+├── content/               # 内容脚本
+│   ├── content.js        # 主入口
+│   ├── components/       # UI组件
+│   │   ├── assistant-panel.js # 主面板组件
+│   │   ├── chat/         # 聊天组件
+│   │   ├── help-modal/   # 帮助模态框
+│   │   └── interactive/  # 交互组件(拖拽、调整大小)
+│   ├── services/         # 业务服务
+│   │   ├── chat-service.js    # 聊天服务
+│   │   └── content-bridge.js  # 内容桥接
+│   └── utils/            # 工具函数
+│       ├── dom-utils.js  # DOM操作工具
+│       └── event-utils.js # 事件处理工具
+├── popup/                # 弹出窗口
+│   ├── popup.html       # 设置界面
+│   ├── popup.css        # 样式文件
+│   └── popup.js         # 设置逻辑
+└── lib/                 # 第三方库
+    └── marked.min.js    # Markdown解析器
 ```
 
-## 开发指南
+### 🔄 架构设计
 
-### 环境要求
-- Chrome浏览器 (最新版本)
-- Node.js >= 14.0.0
+```mermaid
+graph TB
+    A[Content Script] --> B[BridgeService]
+    B --> C[Background Script]
+    C --> D[AI Services]
+    
+    A --> E[AssistantPanel]
+    E --> F[ChatComponent]
+    E --> G[InteractiveComponents]
+    
+    H[Popup] --> B
+    B --> I[SettingsService]
+    I --> J[Chrome Storage]
+    
+    C --> K[MessageRouter]
+    K --> L[ChatService]
+```
 
-### 安装步骤
-1. 克隆仓库
+## 🚀 快速开始
+
+### 📋 环境要求
+
+- **Chrome浏览器** >= 88
+- **Node.js** >= 14.0.0
+- **npm** >= 6.0.0
+
+### 🛠️ 安装步骤
+
+1. **克隆项目**
 ```bash
-git clone https://github.com/lagrangee/weread-deepreading.git
+git clone https://github.com/lagrangee/weread_deepreading.git
 cd weread_deepreading
 ```
 
-2. 安装依赖
+2. **安装依赖**
 ```bash
 npm install
 ```
 
-3. 在Chrome中加载扩展
-- 打开Chrome浏览器，访问 `chrome://extensions/`
-- 开启"开发者模式"
-- 点击"加载已解压的扩展程序"
-- 选择项目目录
+3. **开发模式构建**
+```bash
+npm start
+# 或者
+npm run dev
+```
 
-### 开发规范
-- 代码风格遵循ESLint配置
-- 使用ES6+语法
-- 所有新功能需要添加相应的测试
-- 提交代码前进行本地测试
+4. **生产模式构建**
+```bash
+npm run build
+```
 
-### 调试指南
-1. 后台脚本调试
-   - 在扩展管理页面点击"背景页"进行调试
-2. 内容脚本调试
-   - 在微信读书页面打开开发者工具
-   - 在Console面板查看日志输出
-3. 弹出窗口调试
-   - 右键扩展图标，检查弹出内容
+5. **加载到Chrome**
+   - 打开 `chrome://extensions/`
+   - 开启"开发者模式"
+   - 点击"加载已解压的扩展程序"
+   - 选择 `dist` 目录
 
-## API文档
+### ⚙️ 配置API Key
 
-### 存储API
-使用`chrome.storage.sync`进行数据存储和同步：
+1. 点击扩展图标打开设置面板
+2. 选择AI服务商（文心一言/通义千问/豆包/DeepSeek）
+3. 输入对应的API Key
+4. 点击"测试"验证连接
+5. 保存设置
+
+## 📖 使用指南
+
+### 🎮 基本操作
+
+1. **选择文本**：在微信读书页面选中要分析的文本
+2. **选择功能**：点击对应的AI按钮或使用快捷键
+   - `E` - 解释一下
+   - `X` - 消化一下  
+   - `M` - 兼听一下
+3. **查看结果**：AI分析结果会显示在助手面板中
+4. **继续对话**：可以在输入框中继续提问
+
+### ⌨️ 快捷键
+
+| 快捷键 | 功能 | 说明 |
+|--------|------|------|
+| `E` | 解释一下 | 解释选中文本 |
+| `X` | 消化一下 | 消化选中内容 |
+| `M` | 兼听一下 | 多角度分析 |
+| `Esc` | 关闭面板 | 隐藏助手面板 |
+| `?` | 帮助信息 | 显示帮助模态框 |
+
+### 🎨 界面模式
+
+- **浮动模式**：面板浮动在页面上方，可自由拖拽和调整大小
+- **内嵌模式**：面板嵌入页面右侧，与页面内容并排显示
+
+## 🔧 开发指南
+
+### 📝 开发规范
+
+- **代码风格**：遵循ESLint和Prettier配置
+- **注释规范**：使用JSDoc格式，中文注释
+- **命名规范**：
+  - 类名：PascalCase
+  - 方法名：camelCase
+  - 常量：UPPER_SNAKE_CASE
+  - 私有字段：以`#`开头
+
+### 🏗️ 架构原则
+
+1. **模块化设计**：按功能域划分模块
+2. **单一职责**：每个类/模块只负责一个功能
+3. **依赖注入**：避免硬编码依赖
+4. **错误处理**：统一的错误处理机制
+5. **性能优化**：懒加载、缓存、防抖等
+
+### 🧪 测试
+
+```bash
+# 运行测试
+npm test
+
+# 监听模式
+npm run test:watch
+
+# 代码检查
+npm run lint
+
+# 自动修复
+npm run lint:fix
+```
+
+### 🐛 调试
+
+1. **Background Script调试**
+   - 访问 `chrome://extensions/`
+   - 点击扩展的"背景页"链接
+
+2. **Content Script调试**
+   - 在微信读书页面按F12
+   - 查看Console面板的日志
+
+3. **Popup调试**
+   - 右键扩展图标
+   - 选择"检查弹出内容"
+
+## 📚 API文档
+
+### 🔌 BridgeService
+
+统一的跨环境通信服务：
+
 ```javascript
-// 存储数据
-chrome.storage.sync.set({key: value});
+// 发送消息
+await bridge.sendMessage(type, data, options);
 
-// 读取数据
-chrome.storage.sync.get(['key'], function(result) {
-  console.log('Value currently is ' + result.key);
+// 注册处理器
+bridge.on(type, handler);
+
+// 广播消息
+await bridge.broadcast(type, data);
+```
+
+### 🗃️ SettingsService
+
+设置管理服务：
+
+```javascript
+// 保存设置
+await settingsService.saveProvider(provider);
+await settingsService.saveAPIKeys(apiKeys);
+
+// 加载设置
+const provider = await settingsService.loadProvider();
+const apiKeys = await settingsService.loadAPIKeys();
+```
+
+### 🤖 ChatService
+
+AI聊天服务：
+
+```javascript
+// 发送AI请求
+const response = await chatService.sendMessage({
+  text: '要分析的文本',
+  type: 'explain', // 'explain' | 'digest' | 'analyze'
+  provider: 'doubao'
 });
 ```
 
-### AI服务API
-详细的AI服务API文档请参考 `src/ai/service.js`
+## 🔒 安全性
 
-## 贡献指南
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+### 🛡️ 数据安全
 
-## 版本历史
-- 1.0.0
-  - 初始版本发布
-  - 基本功能实现：文本解释、内容消化、兼听
+- **API Key加密存储**：使用Chrome Storage API安全存储
+- **本地数据处理**：用户数据不上传到服务器
+- **权限最小化**：只请求必要的Chrome权限
 
-## 许可证
-MIT License - 查看 LICENSE 文件了解详情
+### 📋 权限说明
 
-## 联系方式
-项目维护者 - lagrangee
-
-项目链接: https://github.com/lagrangee/weread-deepreading
-
-## 核心功能
-
-通过 AI 大模型增强阅读体验，提供以下交互能力：
-
-1. **💡 解释一下**  
-   - 功能：对选中的文本进行术语解释、背景补充 。
-   - 输入：用户选中的文本（如 `"哈耶克","扩展秩序"，"自由主义"`）。  
-   - 输出：通俗易懂的解释。
-   - 错误处理：当 AI 无法理解或解释时的后备方案
-   - 展示形式：支持富文本（如加粗、列表等）
-
-2. **📖 消化一下**  
-   - 功能：选中文本内容可能专业性很强或者难以理解，对大众读者不友好，需要进行扩展解读，降低理解门槛，方便学习记忆
-   - 输入：长段落文本。
-   - 输出：容易理解、学习和记忆的解读:最好可以分为"核心观点"、"思想流派"、"历史演进"三个部分
-   - 输出长度限制：控制在 300-1000 字
-
-3. **👂 兼听一下**  
-   - 功能：对于选中文本内容中的观点提供多角度分析（如正反观点、相关案例）,兼听则明，帮助读者更全面的学习了解。  
-   - 输入：可能有争议性的内容（如 `"自由意志是否存在"`）。  
-   - 输出：结构化分析（如 `"支持观点：...；反对观点：..."`）, 最好能引用具体的学者或文献链接方便读者做扩展阅读，做到清晰有条理有重点的排版
-
----
-
-## 技术实现
-
-### 1. AI 服务选择
-
-- **API 提供商**：文心一言、通义千问、豆包、 deepseek
-- **请求方式**：通过 `fetch` 调用 RESTful API，需处理鉴权（API Key）。  
-
-### 2. 代码结构
-
-```plaintext
-src/
-├── ai/
-│   ├── service.js      # 封装 AI 请求逻辑
-│   └── prompts.js      # 存储不同功能的提示词模板
-├── content.js          # 绑定按钮事件
-└── background.js       # 管理敏感操作（如 API Key）
+```json
+{
+  "permissions": [
+    "storage",           // 存储用户设置
+    "activeTab"          // 访问当前标签页
+  ],
+  "host_permissions": [
+    "https://weread.qq.com/*"  // 微信读书域名
+  ]
+}
 ```
 
-### 3. 用户配置
+## 🚀 部署发布
 
-- **API KEY配置**
-用户可对每个 AI 服务商输入自己的 API_KEY，并安全保存在本地
+### 📦 打包
 
-## 性能优化
+```bash
+# 生产构建
+npm run build
 
-### 1. 请求优化
+# 打包为zip文件
+npm run package
+```
 
-- 请求防抖（避免频繁调用）
-- 失败重试机制
-- 超时处理
+### 🏪 Chrome Web Store发布
 
-### 2. 展示优化
+1. 访问 [Chrome开发者控制台](https://chrome.google.com/webstore/developer/dashboard)
+2. 上传打包后的zip文件
+3. 填写扩展信息和描述
+4. 提交审核
 
-- 骨架屏加载
+## 🤝 贡献指南
 
-## 依赖与权限
+### 🔄 开发流程
 
-- **Chrome 权限**：需在 `manifest.json` 声明：  
-- **环境变量**：API Key 应通过 `chrome.storage.local` 安全存储。
+1. Fork项目
+2. 创建功能分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add amazing feature'`
+4. 推送分支：`git push origin feature/amazing-feature`
+5. 创建Pull Request
+
+### 📋 提交规范
+
+```
+feat: 新功能
+fix: 修复bug
+docs: 文档更新
+style: 代码格式调整
+refactor: 代码重构
+test: 测试用例
+chore: 构建过程或辅助工具的变动
+```
+
+## 📈 版本历史
+
+### v1.0.0 (2024-01-XX)
+- ✨ 初始版本发布
+- 🎯 三大AI功能：解释、消化、兼听
+- 🔧 多AI服务商支持
+- 🎨 智能面板系统
+- ⌨️ 快捷键支持
+
+## 🔮 未来计划
+
+- [ ] 支持更多AI服务商
+- [ ] 用户自定义提示词
+- [ ] 阅读笔记管理
+- [ ] 多语言支持
+- [ ] 移动端适配
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 许可证。
+
+## 📞 联系方式
+
+- **作者**：lagrangee
+- **项目地址**：https://github.com/lagrangee/weread_deepreading
+- **问题反馈**：https://github.com/lagrangee/weread_deepreading/issues
+
+## 🙏 致谢
+
+感谢以下开源项目：
+- [marked](https://github.com/markedjs/marked) - Markdown解析器
+- [webpack](https://webpack.js.org/) - 模块打包工具
+- [babel](https://babeljs.io/) - JavaScript编译器
 
 ---
 
-## 后续计划
-
-- [ ] 支持用户自定义提示词  
-- [ ] 添加多模型切换
-
----
-
-## 用户体验设计
-
-### 1. 交互反馈
-
-- 加载状态展示
-- 错误提示样式
-- 复制功能
-- 分享功能
-
-### 2. 个性化配置
-
-- 字体大小调整
-- 暗黑模式支持
-- 快捷键支持
-- 历史记录管理
-
-## 安全性设计
-
-### 1. 数据安全
-
-- API Key 加密存储方案
-- 用户数据本地存储加密
-- 敏感信息处理策略
-
-### 2. 合规性
-
-- 用户隐私政策
-- 数据使用声明
-- 免责声明
-
-## 发布计划
-
-### 1. 版本规划
-
-- v1.0: 基础功能（解释、消化、兼听）
-- v1.1: 性能优化和bug修复
-- v1.2: 用户体验改进
+⭐ 如果这个项目对你有帮助，请给个Star支持一下！
