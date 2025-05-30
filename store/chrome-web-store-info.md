@@ -127,8 +127,6 @@ Make your reading deeper and more efficient with intelligent reading assistance!
 ### 必需权限
 - **storage**: 存储用户设置和API密钥
 - **activeTab**: 访问当前标签页内容
-- **scripting**: 注入内容脚本
-- **clipboardRead**: 读取剪贴板内容
 
 ### 主机权限
 - **https://weread.qq.com/**: 微信读书网站
@@ -146,15 +144,7 @@ Make your reading deeper and more efficient with intelligent reading assistance!
    - 用途：在微信读书页面注入助手功能
    - 说明：仅在用户主动使用时访问页面内容
 
-3. 脚本注入权限 (scripting)
-   - 用途：在微信读书页面添加AI助手界面
-   - 说明：仅在微信读书域名下工作
-
-4. 剪贴板读取权限 (clipboardRead)
-   - 用途：快速获取用户复制的文本进行分析
-   - 说明：仅在用户主动触发时读取
-
-5. 网络请求权限
+3. 网络请求权限
    - 用途：向AI服务商发送分析请求
    - 说明：仅向用户配置的AI服务商发送请求
 ```

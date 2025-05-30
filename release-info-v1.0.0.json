@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "微信读书深度阅读助手是一个Chrome浏览器扩展，为微信读书用户提供智能阅读辅助功能，包括文本解释、内容消化、兼听等功能。",
   "author": "lagrangee",
-  "buildTime": "2025-05-28T10:51:39.140Z",
+  "buildTime": "2025-05-30T05:37:06.446Z",
   "files": [
     "assets",
     "assistantPanel.js",

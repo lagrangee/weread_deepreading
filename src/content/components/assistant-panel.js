@@ -129,6 +129,7 @@ export class AssistantPanel {
     this.#bindEvents();
     this.#setupEventListeners();
     this.#updateInfo();
+    this.#addShortcuts();
   }
 
   /**
@@ -166,12 +167,14 @@ export class AssistantPanel {
   #initInteractive() {
     // 初始化拖拽
     new MenuDrag(this.#contentElement, { 
-      onDragEnd: () => this.#saveSizeAndPosition() });
+      onDragEnd: () => this.#saveSizeAndPosition()
+    });
 
     // 初始化Pin按钮拖拽
     new PinDrag(this.#pinElement, {
-      onClick: () => { this.#isShowing ? this.hide() : this.show(); },
-      onDragEnd: () => this.#savePinPosition() });
+      onClick: () => this.show({force: true}),
+      onDragEnd: () => this.#savePinPosition(),
+    });
 
     // 初始化大小调整
     new MenuResize(this.#contentElement, {
@@ -180,7 +183,8 @@ export class AssistantPanel {
           this.#resizeBodyWidth();
         }
         this.#saveSizeAndPosition();
-      }});
+      }
+    });
   }
 
   /**
@@ -199,8 +203,10 @@ export class AssistantPanel {
 
     if (this.#helpModal.isShowing) return;    
 
+    const key = e.key.toLowerCase();
+
     if (e.target.classList.contains('chat-input')){
-      if (e.key === 'Enter') {
+      if (key === 'enter') {
         this.#handleSend();
         e.preventDefault();
         e.stopPropagation();
@@ -208,11 +214,18 @@ export class AssistantPanel {
       return;
     }
 
-    switch (e.key.toLowerCase()) {
+    if (! this.#isShowing) {
+      if (key === 'o') {
+        this.show({force: true});
+      }
+      return;
+    }
+
+    switch (key) {
       case 't': this.#toggleMode();
         break;
       
-      case 'escape': this.#isShowing && this.hide();
+      case 'escape': this.hide();
         break;
         
       case 'a':
@@ -535,8 +548,6 @@ export class AssistantPanel {
     const showing = await this.#settingsService.loadShowing();
     if (!force && !showing) return;
 
-    this.#addShortcuts();
-
     // 更新预览文本
     text = text.trim();
     if (text !== '') {
@@ -551,7 +562,7 @@ export class AssistantPanel {
     // 设置模式
     if (!Object.keys(MODE_HANDLERS).includes(mode)) 
       mode = await this.#settingsService.loadMode();
-    this[MODE_HANDLERS[mode]]();
+    this[MODE_HANDLERS[mode]]({resize: false});
 
     this.#settingsService.saveShowing(true);
     this.#isShowing = true;
@@ -562,7 +573,6 @@ export class AssistantPanel {
    * @param {*} param0 
    */
   async hide({needSave = true} = {}) {
-    this.#removeShortcuts();
     this.#isShowing = false;
     this.#wrapperElement.classList.remove('show');
     this.#wrapperElement.classList.add('hide');
