@@ -51,6 +51,9 @@ export class AssistantPanel {
 
   #provider = null;
 
+  /** @type {string|null} 当前活跃的流式请求ID */
+  #activeRequestId = null;
+
   /** @type {ChatComponent} 聊天组件 */
   #chatComponent;
   
@@ -339,6 +342,10 @@ export class AssistantPanel {
     const sendButton = this.#contentElement.querySelector('.menu-button.send');
     sendButton.addEventListener('click', () => this.#handleSend());
 
+    // 停止按钮
+    const stopButton = this.#contentElement.querySelector('.menu-button.stop');
+    stopButton.addEventListener('click', () => this.#handleStop());
+
     // 监听窗口大小变化
     window.addEventListener('resize', DOMUtils.debounce(() => {
       if (this.#isShowing) {
@@ -436,22 +443,14 @@ export class AssistantPanel {
     if (!message) return;
     input.value = '';
     
-    try {
-      this.#chatComponent.appendMessage(message, 'user');
-      this.#chatComponent.showLoading();
-      const response = await this.#chatService.sendMessage({
-        text: message,
-        type: 'chat',
-        provider: this.#provider,
-        conversationId: 'default',
-        includeHistory: true
-      });
-      
-      this.#chatComponent.showResult(response.content);
-      
-    } catch (error) {
-      this.#chatComponent.showError('发送消息失败', error);
-    }
+    await this.#performStreamRequest({
+      text: message,
+      type: 'chat',
+      conversationId: 'default',
+      includeHistory: true,
+      userMessage: message,
+      actionName: '发送消息'
+    });
   }
 
   /**
@@ -479,7 +478,7 @@ export class AssistantPanel {
   }
 
   /**
-   * 处理AI请求的通用方法
+   * 处理AI请求的通用方法（使用流式处理）
    * @param {string} type - 请求类型 (explain/digest/analyze)
    * @param {string} actionName - 操作名称（用于显示）
    * @private
@@ -490,35 +489,89 @@ export class AssistantPanel {
       return;
     }
 
-    const button = this.#contentElement.querySelector(`.menu-button.${type}`);
+    await this.#performStreamRequest({
+      text: this.#currentText,
+      type,
+      conversationId: 'default',
+      includeHistory: false,
+      actionName,
+      buttonType: type
+    });
+  }
+
+  /**
+   * 执行流式请求的通用方法
+   * @param {Object} options - 请求选项
+   * @param {string} options.text - 请求文本
+   * @param {string} options.type - 请求类型
+   * @param {string} options.conversationId - 对话ID
+   * @param {boolean} options.includeHistory - 是否包含历史记录
+   * @param {string} [options.userMessage] - 用户消息（聊天时显示）
+   * @param {string} options.actionName - 操作名称（用于日志和错误显示）
+   * @param {string} [options.buttonType] - 按钮类型（用于设置加载状态）
+   * @private
+   */
+  async #performStreamRequest({
+    text,
+    type,
+    conversationId,
+    includeHistory,
+    userMessage = null,
+    actionName,
+    buttonType = null
+  }) {
+    // 获取相关按钮（如果有）
+    const button = buttonType ? this.#contentElement.querySelector(`.menu-button.${buttonType}`) : null;
+    
+    // 取消之前的请求
+    this.#cancelActiveRequest();
     
     try {
       // 设置按钮加载状态
-      this.#setButtonLoading(button, true);
+      if (button) {
+        this.#setButtonLoading(button, true);
+      }
       
-      // 添加用户消息到聊天界面
-      // this.#chatComponent.appendMessage(this.#currentText, 'user');
+      // 开始流式显示
+      this.#chatComponent.startStreamMessage(userMessage);
+      this.#showStopButton();
       
-      // 显示加载状态
-      this.#chatComponent.showLoading();
-      
-      // 发送请求
-      const response = await this.#chatService.sendMessage({
-        text: this.#currentText,
-        type, 
-        conversationId: 'default',
-        includeHistory: false,
+      // 发送流式请求
+      this.#activeRequestId = await this.#chatService.sendStreamMessage({
+        text,
+        type,
         provider: this.#provider,
+        conversationId,
+        includeHistory
+      }, {
+        onStart: (data) => {
+          console.log(`${CONFIG.LOG_PREFIX} 开始${actionName}:`, data);
+        },
+        onChunk: (data) => {
+          this.#chatComponent.appendStreamChunk(data.text);
+        },
+        onComplete: (data) => {
+          this.#chatComponent.finishStreamMessage();
+          this.#activeRequestId = null;
+          this.#hideStopButton();
+          console.log(`${CONFIG.LOG_PREFIX} ${actionName}完成`);
+        },
+        onError: (error) => {
+          this.#chatComponent.handleStreamError(error.error || `${actionName}失败`);
+          this.#activeRequestId = null;
+          this.#hideStopButton();
+        }
       });
       
-      // 显示结果
-      this.#chatComponent.showResult(response.content);
-      
     } catch (error) {
-      this.#chatComponent.showError(`${actionName}请求失败`, error);
+      this.#chatComponent.showError(`${actionName}失败`, error);
+      this.#activeRequestId = null;
+      this.#hideStopButton();
     } finally {
       // 恢复按钮状态
-      this.#setButtonLoading(button, false);
+      if (button) {
+        this.#setButtonLoading(button, false);
+      }
     }
   }
 
@@ -562,7 +615,7 @@ export class AssistantPanel {
     // 设置模式
     if (!Object.keys(MODE_HANDLERS).includes(mode)) 
       mode = await this.#settingsService.loadMode();
-    this[MODE_HANDLERS[mode]]({resize: false});
+    this[MODE_HANDLERS[mode]]({resize: mode === 'inline'});
 
     this.#settingsService.saveShowing(true);
     this.#isShowing = true;
@@ -638,9 +691,60 @@ export class AssistantPanel {
   }
 
   /**
+   * 处理停止生成
+   * @private
+   */
+  #handleStop() {
+    this.#cancelActiveRequest();
+    this.#hideStopButton();
+  }
+
+  /**
+   * 显示停止按钮
+   * @private
+   */
+  #showStopButton() {
+    const stopButton = this.#contentElement.querySelector('.menu-button.stop');
+    const sendButton = this.#contentElement.querySelector('.menu-button.send');
+    stopButton.style.display = 'inline-flex';
+    sendButton.style.display = 'none';
+  }
+
+  /**
+   * 隐藏停止按钮
+   * @private
+   */
+  #hideStopButton() {
+    const stopButton = this.#contentElement.querySelector('.menu-button.stop');
+    const sendButton = this.#contentElement.querySelector('.menu-button.send');
+    stopButton.style.display = 'none';
+    sendButton.style.display = 'inline-flex';
+  }
+
+  /**
+   * 取消当前活跃的流式请求
+   * @private
+   */
+  #cancelActiveRequest() {
+    if (this.#activeRequestId) {
+      console.log(`${CONFIG.LOG_PREFIX} 取消流式请求:`, this.#activeRequestId);
+      this.#chatService.cancelStreamRequest(this.#activeRequestId);
+      this.#activeRequestId = null;
+      
+      // 如果有正在进行的流式显示，完成它
+      if (this.#chatComponent.isStreaming()) {
+        this.#chatComponent.finishStreamMessage();
+      }
+    }
+  }
+
+  /**
    * 销毁面板实例
    */
   destroy() {
+    // 取消活跃的请求
+    this.#cancelActiveRequest();
+    
     // 移除事件监听
     this.#removeShortcuts();
     

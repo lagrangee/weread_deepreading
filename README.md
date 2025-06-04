@@ -348,7 +348,7 @@ chore: 构建过程或辅助工具的变动
 
 ## 📞 联系方式
 
-- **作者**：lagrangee
+- **作者**：lagrangee@gmail.com
 - **项目地址**：https://github.com/lagrangee/weread_deepreading
 - **问题反馈**：https://github.com/lagrangee/weread_deepreading/issues
 

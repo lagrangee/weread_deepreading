@@ -52,6 +52,15 @@
   to { transform: translateY(-50%) rotate(360deg); }
 }
 
+@keyframes blink {
+  0%, 50% { 
+    opacity: 1; 
+  }
+  51%, 100% { 
+    opacity: 0; 
+  }
+}
+
 /* CSS 变量定义 */
 :root {
   /* 主题色 */
@@ -93,9 +102,7 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-message: 12px 12px 4px 12px;
-  --radius-message-reply: 12px 12px 12px 4px;
-  --radius-message-info: 12px;
+  --radius-message: 12px;
 
   /* 字体大小 */
   --text-base-px: 16px;
@@ -199,9 +206,11 @@
   }
   &.inline {
     min-width: var(--menu-inline-width);
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
     height: 100vh !important; /* 去掉可高度 resize */
     left:auto !important;
-    right: 0;
+    top: 0 !important;
+    right: 0 !important;
   }
   &.floating {
     min-width: var(--menu-min-width);
@@ -276,6 +285,11 @@
       &.ai, &.help {
         background: var(--color-dark-bg-secondary);
         color: var(--color-dark-text);
+      }
+      &.streaming {
+        .stream-cursor {
+          color: var(--color-dark-text);
+        }
       }
     }
   }
@@ -576,14 +590,26 @@ header.menu-header {
       align-self: flex-start;
       background: var(--color-bg-secondary);
       color: var(--color-text);
-      border-radius: var(--radius-message-reply);
     }
+
+    /* 流式显示样式 */
+    &.streaming {
+      .stream-cursor {
+        display: inline;
+        color: var(--color-text);
+        font-weight: bold;
+        animation: blink 1s infinite;
+        margin-left: 2px;
+      }
+    }
+
     &.help {
       .help-icon {
         vertical-align: middle;
         padding-left: 0.2em;
       }
     }
+
     &.loading {
       align-self: center;
       background: var(--color-bg-secondary);
@@ -604,6 +630,7 @@ header.menu-header {
         border-radius: 50%;
         border-top-color: transparent;
         animation: spin 1s linear infinite;
+        vertical-align: middle;
       }
     }
 
@@ -614,10 +641,12 @@ header.menu-header {
       border-radius: var(--radius-message-info);
       animation: fadeOut 5s ease-out;
     }
+
     h3 {
       font-weight: bold;
       line-height: 2;
     }
+
     li {
       line-height: 1.8;
     }
@@ -654,12 +683,37 @@ header.menu-header {
 
   .menu-button.send {
     flex: 0 0 auto;
+    align-items: center;
     padding: 8px 20px;
     background: var(--color-primary);
     color: white;
     border: none;
     &:hover {
       background: var(--color-primary-hover);
+    }
+  }
+
+  .menu-button.stop {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    transition: background-color var(--transition);
+
+    &:hover {
+      background: #c82333;
+    }
+
+    svg {
+      width: 14px;
+      height: 14px;
     }
   }
 }

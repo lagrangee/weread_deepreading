@@ -5,11 +5,13 @@
 
 // Background 消息类型（仅 AI 相关）
 export const BACKGROUND_MESSAGES = {
-  // AI聊天相关 - 唯一需要 Background 处理的功能
+  // AI聊天相关 
   CHAT: {
-    REQUEST: 'CHAT_REQUEST',   // AI 请求
-    RESPONSE: 'CHAT_RESPONSE',  // AI 响应（广播）
-    TEST_API_KEY: 'TEST_API_KEY'    // 测试 API Key
+    REQUEST: 'CHAT_REQUEST',           // AI 请求（非流式）
+    REQUEST_STREAM: 'CHAT_REQUEST_STREAM', // AI 流式请求
+    RESPONSE: 'CHAT_RESPONSE',         // AI 响应（广播）
+    TEST_API_KEY: 'TEST_API_KEY'       // 测试 API Key
+    // 注意：流式请求现在通过Port连接 'stream-chat' 处理，不需要额外的消息类型
   }
 };
 
