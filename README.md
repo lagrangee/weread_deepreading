@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/lagrangee/weread_deepreading)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/lagrangee/weread_deepreading)
 
 ## 📖 项目介绍
 
@@ -327,7 +327,14 @@ chore: 构建过程或辅助工具的变动
 
 ## 📈 版本历史
 
-### v1.0.0 (2024-01-XX)
+### v1.1.0 (2025-06-04)
+- ✨ 新增流式响应支持，AI回答实时显示
+- 🚀 优化响应速度，提升用户体验
+- 🔧 改进错误处理机制
+- 🎨 界面细节优化和动画效果提升
+- 📱 响应式设计改进
+
+### v1.0.0 (2025-05-29)
 - ✨ 初始版本发布
 - 🎯 三大AI功能：解释、消化、兼听
 - 🔧 多AI服务商支持

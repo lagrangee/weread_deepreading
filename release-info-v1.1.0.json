@@ -1,0 +1,30 @@
+{
+  "name": "weread_deepreading",
+  "version": "1.1.0",
+  "description": "微信读书深度阅读助手是一个Chrome浏览器扩展，为微信读书用户提供智能阅读辅助功能，包括文本解释、内容消化、兼听等功能。",
+  "author": "lagrangee",
+  "buildTime": "2025-06-04T11:18:11.329Z",
+  "files": [
+    "assets",
+    "assistantPanel.js",
+    "background.bundle.js",
+    "content",
+    "content-vendor.bundle.js",
+    "content.bundle.js",
+    "manifest.json",
+    "popup",
+    "popup-vendor.bundle.js",
+    "popup.bundle.js",
+    "popupStyles.js",
+    "assets/icons",
+    "content/assistant-panel.css",
+    "content/assistant-panel.html",
+    "popup/popup.css",
+    "popup/popup.html",
+    "assets/icons/icon128.png",
+    "assets/icons/icon16.png",
+    "assets/icons/icon32.png",
+    "assets/icons/icon48.png",
+    "assets/icons/icon64.png"
+  ]
+}
