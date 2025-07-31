@@ -10,25 +10,15 @@ export class SettingsService {
 
   /** @type {Object} 默认设置 */
   static #DEFAULT_SETTINGS = {
-    floating: {
-      left: '70%',
-      top: '20%',
-      width: '300px',
-      height: '500px'
-    },
-    inline: {
-      width: '400px',
-      height: '100vh',
-    },
     mode: 'inline',
     showing: true,
-    fontSize: 14,
     pin: {
       right: '20px',
       bottom: '20px'
     },
     darkMode: false,
     provider: CONFIG.DEFAULT_PROVIDER,
+    apiKeys: {},
   };
 
   async saveFloating(position) {

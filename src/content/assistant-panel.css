@@ -25,6 +25,9 @@
 }
 /* inject end */
 
+/* 响应式设计 */
+@media (max-width: 1024px) {
+}
 
 @keyframes pulse {
   0%, 100% { 
@@ -84,11 +87,10 @@
   --color-dark-primary: rgb(70,122,200);
 
   /* 布局尺寸 */
-  --menu-width: 400px;
+  --menu-width: 600px;
   --menu-height: 600px;
   --menu-min-width: 300px;
-  --menu-min-height: 400px;
-  --menu-inline-width: 600px;
+  --menu-min-height: 500px;
 
   /* 间距 - 使用4的倍数 */
   --space-1: 0.25rem;  /* 4px */
@@ -105,7 +107,7 @@
   --radius-message: 12px;
 
   /* 字体大小 */
-  --text-base-px: 16px;
+  --text-base-px: clamp(14px, 2vw, 20px);
   --text-xs: 0.7em;  /* 11px */
   --text-sm: 0.8em;  /* 12px */
   --text-base: 1em;    /* 16px */
@@ -189,7 +191,7 @@
 .assistant-panel {
   position: fixed;
   width: var(--menu-width);
-  height: var(--menu-height);
+  min-width: var(--menu-min-width);
   background: var(--color-bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-menu);
@@ -205,7 +207,6 @@
     display: flex;
   }
   &.inline {
-    min-width: var(--menu-inline-width);
     border-radius: var(--radius-lg) 0 0 var(--radius-lg);
     height: 100vh !important; /* 去掉可高度 resize */
     left:auto !important;
@@ -213,8 +214,8 @@
     right: 0 !important;
   }
   &.floating {
-    min-width: var(--menu-min-width);
     min-height: var(--menu-min-height);
+    height: var(--menu-height);
     .menu-button.toggle-mode {
       span.inline {
         display: inline;
@@ -736,16 +737,6 @@ header.menu-header {
 
 .chat-container::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .assistant-panel {
-    width: 90vw;
-    height: 80vh;
-    right: 5vw;
-    top: 10vh;
-  }
 }
 
 /* 确保所有内容可选择 */

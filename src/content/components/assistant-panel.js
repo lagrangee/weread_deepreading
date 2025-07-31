@@ -366,7 +366,7 @@ export class AssistantPanel {
     Object.assign(this.#pinElement.style, pinPosition);
 
     const fontSize = await this.#settingsService.loadFontSize();
-    this.#setFontSise({ fontSize });
+    if (fontSize) this.#setFontSise({ fontSize });
 
     const darkMode = await this.#settingsService.loadDarkMode();
     this.#wrapperElement.classList.toggle('dark-mode', darkMode);
@@ -591,6 +591,10 @@ export class AssistantPanel {
     }
   }
 
+  isShowing() {
+    return this.#isShowing;
+  }
+
   /**
    * 显示面板
    * @param {Object} options - 选项
@@ -615,7 +619,7 @@ export class AssistantPanel {
     // 设置模式
     if (!Object.keys(MODE_HANDLERS).includes(mode)) 
       mode = await this.#settingsService.loadMode();
-    this[MODE_HANDLERS[mode]]({resize: mode === 'inline'});
+    this[MODE_HANDLERS[mode]]({resize: mode === 'inline' && !this.#isShowing});
 
     this.#settingsService.saveShowing(true);
     this.#isShowing = true;

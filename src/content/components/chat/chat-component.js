@@ -212,8 +212,7 @@ export class ChatComponent {
       const cursors = this.#currentStreamElement.querySelectorAll('.stream-cursor');
       cursors.forEach(cursor => cursor.remove());
       
-      // 显示错误信息
-      this.#currentStreamElement.innerHTML = `流式生成失败: ${errorMessage}`;
+      this.#currentStreamElement.remove();
       
       // 清理状态
       this.#currentStreamElement = null;
@@ -221,7 +220,7 @@ export class ChatComponent {
     }
     
     // 也显示一个临时错误提示
-    this.showError('流式请求失败', new Error(errorMessage));
+    this.showError('请求失败', new Error(errorMessage));
   }
 
   /**
