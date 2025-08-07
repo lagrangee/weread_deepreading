@@ -26,7 +26,7 @@
 ## 发布步骤
 1. 访问: https://chrome.google.com/webstore/developer/dashboard
 2. 点击"新增项目"
-3. 上传: weread-deepreading-v1.1.1.zip
+3. 上传: weread-deepreading-v1.1.2.zip
 4. 填写商店信息 (参考: store/chrome-web-store-info.md)
 5. 上传截图
 6. 提交审核
@@ -37,5 +37,5 @@
 - [ ] 计划后续更新
 
 ---
-生成时间: 2025-06-05T08:53:13.460Z
-版本: 1.1.1
+生成时间: 2025-07-31T07:11:58.654Z
+版本: 1.1.2
