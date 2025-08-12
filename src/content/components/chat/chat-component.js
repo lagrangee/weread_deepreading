@@ -18,6 +18,24 @@ export class ChatComponent {
 
   /** @type {string} 累积的流式内容 */
   #accumulatedStreamContent = '';
+
+  /** @type {boolean} 是否自动滚动到底部 */
+  #autoScroll = true;
+
+  /** @type {boolean} 用户是否正在手动滚动 */
+  #userScrolling = false;
+
+  /** @type {number} 滚动检测的防抖定时器 */
+  #scrollTimeout = null;
+
+  /** @type {HTMLElement} 新内容提示元素 */
+  #newContentIndicator = null;
+
+  /** @type {Function} 滚动事件处理函数引用 */
+  #boundHandleScroll = null;
+
+  /** @type {number} indicator显示/隐藏的防抖定时器 */
+  #indicatorTimeout = null;
   
   /** @type {Object.<string, string>} 支持的AI服务商配置 */
   static #providers = {
@@ -42,6 +60,8 @@ export class ChatComponent {
   #initialize() {
     this.#initMarkdown();
     this.#bindEvents();
+    this.#initScrollBehavior();
+    this.#createNewContentIndicator();
   }
 
   /**
@@ -64,6 +84,139 @@ export class ChatComponent {
    */
   #bindEvents() {
     // TODO: 实现事件绑定
+  }
+
+  /**
+   * 初始化滚动行为监听
+   * @private
+   */
+  #initScrollBehavior() {
+    this.#boundHandleScroll = this.#handleScroll.bind(this);
+    this.#container.addEventListener('scroll', this.#boundHandleScroll);
+  }
+
+  /**
+   * 创建新内容提示器
+   * @private
+   */
+  #createNewContentIndicator() {
+    this.#newContentIndicator = document.createElement('div');
+    this.#newContentIndicator.className = 'new-content-indicator';
+    this.#newContentIndicator.innerHTML = `
+      <button class="scroll-to-bottom-btn" title="滚动到底部">
+        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    `;
+    this.#newContentIndicator.style.display = 'none';
+    
+    // 绑定点击事件
+    const scrollBtn = this.#newContentIndicator.querySelector('.scroll-to-bottom-btn');
+    scrollBtn.addEventListener('click', () => {
+      this.#enableAutoScroll();
+      this.scrollToBottom();
+      this.#hideNewContentIndicator();
+    });
+    
+    // 插入到容器的父元素中
+    const parentElement = this.#container.parentElement;
+    if (parentElement) {
+      parentElement.appendChild(this.#newContentIndicator);
+    }
+  }
+
+  /**
+   * 处理滚动事件
+   * @private
+   */
+  #handleScroll() {
+    // 防抖处理
+    if (this.#scrollTimeout) {
+      clearTimeout(this.#scrollTimeout);
+    }
+
+    // 标记用户正在滚动
+    this.#userScrolling = true;
+
+    this.#scrollTimeout = setTimeout(() => {
+      this.#userScrolling = false;
+      this.#checkScrollPosition();
+    }, 150);
+  }
+
+  /**
+   * 检查滚动位置并决定是否自动滚动
+   * @private
+   */
+  #checkScrollPosition() {
+    const { scrollTop, scrollHeight, clientHeight } = this.#container;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    
+    // 如果距离底部小于50px，认为用户在关注底部内容
+    if (distanceFromBottom < 50) {
+      // 只有在状态发生变化时才更新
+      if (!this.#autoScroll) {
+        this.#enableAutoScroll();
+        this.#hideNewContentIndicator();
+      }
+    } else {
+      // 只有在状态发生变化时才更新
+      if (this.#autoScroll) {
+        this.#disableAutoScroll();
+      }
+    }
+  }
+
+  /**
+   * 启用自动滚动
+   * @private
+   */
+  #enableAutoScroll() {
+    this.#autoScroll = true;
+  }
+
+  /**
+   * 禁用自动滚动
+   * @private
+   */
+  #disableAutoScroll() {
+    this.#autoScroll = false;
+  }
+
+  /**
+   * 显示新内容提示
+   * @private
+   */
+  #showNewContentIndicator() {
+    if (this.#newContentIndicator) {
+      // 防抖处理：避免频繁显示/隐藏
+      if (this.#indicatorTimeout) {
+        clearTimeout(this.#indicatorTimeout);
+      }
+      
+      this.#indicatorTimeout = setTimeout(() => {
+        if (this.#newContentIndicator) {
+          this.#newContentIndicator.style.display = 'flex';
+        }
+      }, 100);
+    }
+  }
+
+  /**
+   * 隐藏新内容提示
+   * @private
+   */
+  #hideNewContentIndicator() {
+    if (this.#newContentIndicator) {
+      // 防抖处理：避免频繁显示/隐藏
+      if (this.#indicatorTimeout) {
+        clearTimeout(this.#indicatorTimeout);
+        this.#indicatorTimeout = null;
+      }
+      
+      this.#newContentIndicator.style.display = 'none';
+    }
   }
 
   /**
@@ -132,7 +285,8 @@ export class ChatComponent {
     // 更新实际内容
     this.#currentStreamElement.innerHTML = tempDiv.innerHTML;
     
-    this.scrollToBottom();
+    // 智能滚动：只在满足条件时才滚动
+    this.#smartScroll();
   }
 
   /**
@@ -196,7 +350,8 @@ export class ChatComponent {
     this.#currentStreamElement = null;
     this.#accumulatedStreamContent = '';
     
-    this.scrollToBottom();
+    // 智能滚动：只在用户没有禁用自动滚动时才滚动
+    this.#smartScroll();
   }
 
   /**
@@ -279,6 +434,37 @@ export class ChatComponent {
   }
 
   /**
+   * 智能滚动：根据用户行为决定是否滚动
+   * @private
+   */
+  #smartScroll() {
+    // 如果用户正在滚动，不要自动滚动
+    if (this.#userScrolling) {
+      this.#showNewContentIndicator();
+      return;
+    }
+
+    // 检查是否真的需要滚动（避免频繁的滚动操作）
+    const { scrollTop, scrollHeight, clientHeight } = this.#container;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    
+    // 如果距离底部小于20px，认为已经在底部，不需要滚动
+    if (distanceFromBottom < 20) {
+      this.#hideNewContentIndicator();
+      return;
+    }
+
+    // 如果启用了自动滚动，则滚动到底部
+    if (this.#autoScroll) {
+      this.scrollToBottom();
+      this.#hideNewContentIndicator();
+    } else {
+      // 否则显示新内容提示
+      this.#showNewContentIndicator();
+    }
+  }
+
+  /**
    * 滚动到底部
    */
   scrollToBottom() {
@@ -293,9 +479,63 @@ export class ChatComponent {
     return !!this.#currentStreamElement;
   }
 
+  /**
+   * 获取自动滚动状态
+   * @returns {boolean} 是否启用自动滚动
+   */
+  isAutoScrollEnabled() {
+    return this.#autoScroll;
+  }
+
+  /**
+   * 设置自动滚动状态
+   * @param {boolean} enabled - 是否启用自动滚动
+   */
+  setAutoScroll(enabled) {
+    this.#autoScroll = enabled;
+    if (enabled) {
+      this.#hideNewContentIndicator();
+      this.scrollToBottom();
+    }
+  }
+
+  /**
+   * 切换自动滚动状态
+   */
+  toggleAutoScroll() {
+    this.setAutoScroll(!this.#autoScroll);
+  }
+
   destroy() {
     // 清理流式状态
     this.#currentStreamElement = null;
     this.#accumulatedStreamContent = '';
+    
+    // 清理滚动相关状态
+    this.#autoScroll = true;
+    this.#userScrolling = false;
+    
+    // 清理定时器
+    if (this.#scrollTimeout) {
+      clearTimeout(this.#scrollTimeout);
+      this.#scrollTimeout = null;
+    }
+    
+    if (this.#indicatorTimeout) {
+      clearTimeout(this.#indicatorTimeout);
+      this.#indicatorTimeout = null;
+    }
+    
+    // 移除新内容提示器
+    if (this.#newContentIndicator && this.#newContentIndicator.parentElement) {
+      this.#newContentIndicator.parentElement.removeChild(this.#newContentIndicator);
+      this.#newContentIndicator = null;
+    }
+    
+    // 移除事件监听器
+    if (this.#boundHandleScroll) {
+      this.#container.removeEventListener('scroll', this.#boundHandleScroll);
+      this.#boundHandleScroll = null;
+    }
   }
 } 

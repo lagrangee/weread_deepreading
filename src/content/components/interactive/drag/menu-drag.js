@@ -16,7 +16,7 @@ export class MenuDrag extends BaseDrag {
    */
   shouldIgnoreDrag(e) {
     // 如果点击的是关闭按钮，不触发拖拽
-    return e.target.closest('.menu-close');
+    return e.target.closest('.menu-close') || ! e.target.closest('.bar');
   }
 
   /**

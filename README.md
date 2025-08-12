@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-1.1.2-green.svg)](https://github.com/lagrangee/weread_deepreading)
+[![Version](https://img.shields.io/badge/version-1.1.3-green.svg)](https://github.com/lagrangee/weread_deepreading)
 
 ## 📖 项目介绍
 
@@ -327,7 +327,11 @@ chore: 构建过程或辅助工具的变动
 
 ## 📈 版本历史
 
-### v1.1.2 (2025-06-05)
+### v1.1.3 (2025-08-12)
+- 🎯 AI输出内容时正确响应手动进度条滚动，避免实时滚动
+- 🎯 浮动模式下限制拖动响应区域
+
+### v1.1.2 (2025-07-25)
 - 🐛 修复 inline 模式下每次复制都会触发页面刷新的bug
 
 ### v1.1.1 (2025-06-05)

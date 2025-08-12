@@ -606,6 +606,7 @@ header.menu-header {
 
     &.help {
       .help-icon {
+        display: inline;
         vertical-align: middle;
         padding-left: 0.2em;
       }
@@ -737,6 +738,84 @@ header.menu-header {
 
 .chat-container::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
+}
+
+/* 新内容提示器 */
+.new-content-indicator {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--space-2);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+}
+
+.new-content-indicator .scroll-to-bottom-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.new-content-indicator .arrow-icon {
+  width: 20px;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.new-content-indicator .scroll-to-bottom-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.1);
+}
+
+.new-content-indicator .scroll-to-bottom-btn:hover .arrow-icon {
+  transform: translateY(2px);
+}
+
+.new-content-indicator .scroll-to-bottom-btn:active {
+  transform: scale(0.95);
+}
+
+.new-content-indicator .scroll-to-bottom-btn:active .arrow-icon {
+  transform: translateY(1px);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* 深色模式下的新内容提示器 */
+.dark-mode .new-content-indicator {
+  background: var(--color-dark-primary);
+  color: var(--color-dark-text);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .new-content-indicator .scroll-to-bottom-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 确保所有内容可选择 */
