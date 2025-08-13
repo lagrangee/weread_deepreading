@@ -21,7 +21,7 @@ export const CONFIG = {
     },
     qianwen: {
       url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-      model: 'qwen-turbo'
+      model: 'qwen-max'
     },
     doubao: {
       url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',

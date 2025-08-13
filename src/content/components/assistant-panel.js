@@ -54,6 +54,9 @@ export class AssistantPanel {
   /** @type {string|null} 当前活跃的流式请求ID */
   #activeRequestId = null;
 
+  /** @type {string} 当前对话ID */
+  #currentConversationId = 'default';
+
   /** @type {ChatComponent} 聊天组件 */
   #chatComponent;
   
@@ -450,7 +453,7 @@ export class AssistantPanel {
     await this.#performStreamRequest({
       text: message,
       type: 'chat',
-      conversationId: 'default',
+      conversationId: this.#currentConversationId,
       includeHistory: true,
       userMessage: message,
       actionName: '发送消息'
@@ -493,10 +496,16 @@ export class AssistantPanel {
       return;
     }
 
+    // 为 explain/digest/analyze 操作生成新的 conversationId
+    const newConversationId = DOMUtils.generateUniqueId(type);
+    this.#currentConversationId = newConversationId;
+    
+    console.log(`${CONFIG.LOG_PREFIX} 生成新的对话ID: ${newConversationId} (${actionName})`);
+
     await this.#performStreamRequest({
       text: this.#currentText,
       type,
-      conversationId: 'default',
+      conversationId: newConversationId,
       includeHistory: false,
       actionName,
       buttonType: type

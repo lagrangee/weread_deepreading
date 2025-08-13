@@ -77,6 +77,18 @@ export class DOMUtils {
   }
 
   /**
+   * 生成唯一ID
+   * @param {string} [prefix=''] - ID前缀
+   * @returns {string} 唯一ID
+   */
+  static generateUniqueId(prefix = '') {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    const uniqueId = `${timestamp}_${random}`;
+    return prefix ? `${prefix}_${uniqueId}` : uniqueId;
+  }
+
+  /**
    * 确保元素在视口内
    * @param {HTMLElement} element - 目标元素
    */

@@ -83,7 +83,7 @@ export class ChatService {
             // 保存用户消息到历史
             this.addToConversation(conversationId, {
               role: 'user',
-              content: data.userPrompt || text,
+              content: text,
               timestamp: Date.now()
             });
             break;
