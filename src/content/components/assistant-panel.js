@@ -217,6 +217,10 @@ export class AssistantPanel {
       return;
     }
 
+    if (e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
     if (! this.#isShowing) {
       if (key === 'o') {
         this.show({force: true});
