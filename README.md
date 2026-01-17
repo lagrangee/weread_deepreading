@@ -2,11 +2,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-1.1.3-green.svg)](https://github.com/lagrangee/weread_deepreading)
+[![Version](https://img.shields.io/badge/version-1.1.4-green.svg)](https://github.com/lagrangee/weread_deepreading)
 
 ## 📖 项目介绍
 
 微信读书深度阅读助手是一个Chrome浏览器扩展，通过集成多个AI大模型，为微信读书用户提供智能阅读辅助功能。支持文本解释、内容消化、多角度分析等功能，让阅读更加深入和高效。
+
+## 最近更新 v1.1.4 (2026-01-18)
+- ✨ 新增设置页面全新 UI，支持多标签切换（模型配置/快捷键说明/关于项目）
+- ✨ 新增 Kimi、MiniMax、智谱 三个 AI 服务商支持
+- ✨ 助手面板支持快捷切换服务商（点击服务商按钮显示菜单）
+- ✨ 新增服务商状态指示灯（绿色=正常/红色=失败/灰色=未配置）
+- ✨ 新增首次使用引导提示
+- 🔧 ESLint 配置升级至 ES2022，支持私有字段语法
+- 🐛 修复多处代码规范问题
 
 ## ✨ 核心功能
 
@@ -31,7 +40,7 @@
 
 ### 🔧 技术特性
 
-- **多AI服务商支持**：文心一言、通义千问、豆包、DeepSeek
+- **多AI服务商支持**：千问、豆包、Kimi、MiniMax、智谱、文心一言
 - **智能面板系统**：浮动/内嵌模式切换，支持拖拽和调整大小
 - **会话式交互**：支持连续对话，保持上下文
 - **Markdown渲染**：富文本显示，支持代码高亮
@@ -326,6 +335,15 @@ chore: 构建过程或辅助工具的变动
 ```
 
 ## 📈 版本历史
+
+### v1.1.4 (2026-01-18)
+- ✨ 新增设置页面全新 UI，支持多标签切换（模型配置/快捷键说明/关于项目）
+- ✨ 新增 Kimi、MiniMax、智谱 三个 AI 服务商支持
+- ✨ 助手面板支持快捷切换服务商（点击服务商按钮显示菜单）
+- ✨ 新增服务商状态指示灯（绿色=正常/红色=失败/灰色=未配置）
+- ✨ 新增首次使用引导提示
+- 🔧 ESLint 配置升级至 ES2022，支持私有字段语法
+- 🐛 修复多处代码规范问题
 
 ### v1.1.3 (2025-08-12)
 - 🎯 AI输出内容时正确响应手动进度条滚动，避免实时滚动
