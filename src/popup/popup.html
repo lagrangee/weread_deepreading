@@ -1,67 +1,412 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
-  <title>深度阅读助手设置</title>
+  <title>DeepReader Settings</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
-  <div id="popup-content" class="container">
-    <h1>深度阅读助手设置</h1>
-    <div class="section">
-      <h2>当前服务商</h2>
-      <select id="currentProvider">
-        <option value="wenxin">文心一言</option>
-        <option value="qianwen">通义千问</option>
-        <option value="doubao">豆包</option>
-        <option value="deepseek">DeepSeek</option>
-      </select>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <path fill="currentColor" d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5" />
+          </svg>
+          <span>DeepReader</span>
+        </div>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="models">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor"
+              d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12S6.48 2 12 2m0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8s-8 3.58-8 8s3.58 8 8 8m1-13h-2v4H7v2h4v4h2v-4h4v-2h-4V7z" />
+          </svg>
+          <span>模型配置</span>
+        </button>
+        <button class="nav-item" data-tab="shortcuts">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor"
+              d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z" />
+          </svg>
+          <span>快捷键说明</span>
+        </button>
+        <button class="nav-item" data-tab="about">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor"
+              d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5c0-2.21-1.79-4-4-4z" />
+          </svg>
+          <span>关于项目</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="autoSaveStatus" class="auto-save-status">
+          <div class="status-dot"></div>
+          <span>设置已实时同步</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section id="tab-models" class="tab-content active">
+        <header class="content-header">
+          <h2>模型引擎配置</h2>
+          <p>配置您首选的 AI 驱动程序，支持自定义模型名和采样温度。</p>
+        </header>
+
+        <div class="card provider-selection">
+          <h3>当前默认服务商</h3>
+          <div class="select-wrapper">
+            <select id="currentProvider">
+              <option value="qianwen">千问</option>
+              <option value="doubao">豆包</option>
+              <option value="kimi">Kimi</option>
+              <option value="minimax">MiniMax</option>
+              <option value="zhipu">智谱</option>
+              <option value="wenxin">文心一言</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="provider-grid">
+          <!-- 通义千问 -->
+          <div class="card provider-card" data-provider="qianwen">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="qianwen"></div>
+                <h4>千问</h4>
+              </div>
+              <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="apply-link">去申请 <svg
+                  viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="qianwenKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="qianwen">查看支持列表</a>
+                  </div>
+                  <input type="text" id="qianwenModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="qianwenTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="qianwen">测试连接</button>
+              <div class="test-status" id="qianwenStatus"></div>
+            </div>
+          </div>
+
+          <!-- 豆包 -->
+          <div class="card provider-card" data-provider="doubao">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="doubao"></div>
+                <h4>豆包</h4>
+              </div>
+              <a href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey" target="_blank"
+                class="apply-link">去申请 <svg viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="doubaoKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="doubao">查看支持列表</a>
+                  </div>
+                  <input type="text" id="doubaoModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="doubaoTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="doubao">测试连接</button>
+              <div class="test-status" id="doubaoStatus"></div>
+            </div>
+          </div>
+
+          <!-- Kimi -->
+          <div class="card provider-card" data-provider="kimi">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="kimi"></div>
+                <h4>Kimi</h4>
+              </div>
+              <a href="https://platform.moonshot.cn/console/api-keys" target="_blank" class="apply-link">去申请 <svg
+                  viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="kimiKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="kimi">查看支持列表</a>
+                  </div>
+                  <input type="text" id="kimiModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="kimiTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="kimi">测试连接</button>
+              <div class="test-status" id="kimiStatus"></div>
+            </div>
+          </div>
+
+          <!-- MiniMax -->
+          <div class="card provider-card" data-provider="minimax">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="minimax"></div>
+                <h4>MiniMax</h4>
+              </div>
+              <a href="https://platform.minimaxi.com/user-center/basic-information/interface-key" target="_blank"
+                class="apply-link">去申请 <svg viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="minimaxKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="minimax">查看支持列表</a>
+                  </div>
+                  <input type="text" id="minimaxModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="minimaxTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="minimax">测试连接</button>
+              <div class="test-status" id="minimaxStatus"></div>
+            </div>
+          </div>
+
+          <!-- 智谱 -->
+          <div class="card provider-card" data-provider="zhipu">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="zhipu"></div>
+                <h4>智谱</h4>
+              </div>
+              <a href="https://open.bigmodel.ai/usercenter/apikeys" target="_blank" class="apply-link">去申请 <svg
+                  viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="zhipuKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="zhipu">查看支持列表</a>
+                  </div>
+                  <input type="text" id="zhipuModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="zhipuTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="zhipu">测试连接</button>
+              <div class="test-status" id="zhipuStatus"></div>
+            </div>
+          </div>
+
+          <!-- 文心一言 -->
+          <div class="card provider-card" data-provider="wenxin">
+            <div class="card-header">
+              <div class="provider-info">
+                <div class="status-indicator none" data-provider="wenxin"></div>
+                <h4>文心一言</h4>
+              </div>
+              <a href="https://console.bce.baidu.com/qianfan/ais/console/applicationManage/application" target="_blank"
+                class="apply-link">去申请 <svg viewBox="0 0 24 24" width="12" height="12">
+                  <path fill="currentColor"
+                    d="M14 3h7v7h-2V6.41l-9 9L8.59 14l9-9H14V3zM5 5h5V3H5c-1.11 0-2 .89-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5h-2v5H5V5z" />
+                </svg></a>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="wenxinKey" placeholder="输入 API Key">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-header">
+                    <label>模型名称</label>
+                    <a href="#" target="_blank" class="model-list-link" data-type="model-list"
+                      data-provider="wenxin">查看支持列表</a>
+                  </div>
+                  <input type="text" id="wenxinModel" placeholder="默认">
+                </div>
+                <div class="form-group narrow">
+                  <div class="label-header">
+                    <label>温度</label>
+                  </div>
+                  <input type="number" id="wenxinTemp" step="0.1" min="0" max="1" placeholder="0.7">
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn ghost test-btn" data-provider="wenxin">测试连接</button>
+              <div class="test-status" id="wenxinStatus"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="tab-shortcuts" class="tab-content">
+        <header class="content-header">
+          <h2>快捷键说明</h2>
+          <p>在微信读书阅读页面使用以下快捷键，让 AI 体验更沉浸。</p>
+        </header>
+        <div class="card">
+          <div class="shortcut-grid">
+            <div class="shortcut-item">
+              <div class="keys"><kbd>O</kbd></div>
+              <div class="desc">打开助手面板</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>ESC</kbd></div>
+              <div class="desc">关闭助手面板</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>Enter</kbd></div>
+              <div class="desc">发送聊天消息</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>T</kbd></div>
+              <div class="desc">切换显示模式 (侧边栏 / 悬浮)</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>E</kbd></div>
+              <div class="desc">解释选中文本</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>X</kbd></div>
+              <div class="desc">消化选中文本</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>M</kbd></div>
+              <div class="desc">兼听/分析选中文本</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>A</kbd> / <kbd>Shift</kbd>+<kbd>A</kbd></div>
+              <div class="desc">调整面板字体大小</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>D</kbd></div>
+              <div class="desc">切换夜间模式</div>
+            </div>
+            <div class="shortcut-item">
+              <div class="keys"><kbd>?</kbd></div>
+              <div class="desc">打开此设置页面</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-about" class="tab-content">
+        <header class="content-header">
+          <h2>关于 DeepReader</h2>
+        </header>
+        <div class="card about-card">
+          <div class="version-info">
+            <span class="label">当前版本</span>
+            <span class="value">v1.1.4</span>
+          </div>
+          <p>这是一个开源的微信读书增强插件，致力于通过 AI 力量提升您的数字阅读体验。</p>
+          <div class="links">
+            <a href="https://github.com/lagrangee/weread_deepreading" target="_blank" class="btn ghost">GitHub 仓库</a>
+            <span class="contact-info">联系开发者: <a href="mailto:lagrangee@gmail.com">lagrangee@gmail.com</a></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 首次使用引导 -->
+  <div id="onboardingBanner">
+    <div class="onboarding-content">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <path fill="currentColor"
+          d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8z" />
+      </svg>
+      <div class="onboarding-text">
+        <h4>欢迎开启 AI 沉浸式阅读</h4>
+        <p>检测到您尚未配置 API Key，请先完成至少一个服务商的设置以启用 AI 功能。</p>
+      </div>
     </div>
-
-    <div class="section">
-      <h2>API Keys 设置</h2>
-      
-      <div class="api-key-group">
-        <label for="wenxinKey">文心一言 API Key</label>
-        <div class="input-group">
-          <input type="password" id="wenxinKey" placeholder="输入 API Key">
-          <button class="test-btn" data-provider="wenxin">测试</button>
-        </div>
-      </div>
-
-      <div class="api-key-group">
-        <label for="qianwenKey">通义千问 API Key</label>
-        <div class="input-group">
-          <input type="password" id="qianwenKey" placeholder="输入 API Key">
-          <button class="test-btn" data-provider="qianwen">测试</button>
-        </div>
-      </div>
-
-      <div class="api-key-group">
-        <label for="doubaoKey">豆包 API Key</label>
-        <div class="input-group">
-          <input type="password" id="doubaoKey" placeholder="输入 API Key">
-          <button class="test-btn" data-provider="doubao">测试</button>
-        </div>
-      </div>
-
-      <div class="api-key-group">
-        <label for="deepseekKey">DeepSeek API Key(使用通义千问服务，可以一致)</label>
-        <div class="input-group">
-          <input type="password" id="deepseekKey" placeholder="输入 API Key">
-          <button class="test-btn" data-provider="deepseek">测试</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="actions">
-      <div id="statusMsg" class="status-message"></div>
-      <button id="saveConfig" class="primary">保存设置</button>
-    </div>
-
+    <button class="onboarding-btn">立即设置</button>
   </div>
 
   <script src="../popup-vendor.bundle.js"></script>
   <script src="../popup.bundle.js"></script>
 </body>
-</html> 
+
+</html>

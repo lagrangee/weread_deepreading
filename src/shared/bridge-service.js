@@ -3,7 +3,7 @@
  * @description 通用通信桥接服务
  */
 
-import { MESSAGE_TYPES, MESSAGE_STATUS, MESSAGE_SOURCE } from './message-types.js';
+import { MESSAGE_STATUS, MESSAGE_SOURCE } from './message-types.js';
 import { CONFIG } from './config.js';
 
 export class BridgeService {
@@ -21,7 +21,9 @@ export class BridgeService {
   init() {
     // 监听来自其他环境的消息
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.target !== this.source) return;
+      if (message.target !== this.source) {
+        return;
+      }
 
       this.handleMessage(message, sender, sendResponse);
       return true; // 保持消息通道开放
@@ -37,7 +39,7 @@ export class BridgeService {
    */
   async sendMessage(type, data = {}, options = {}) {
     const { target, tabId, timeout = 100000 } = options;
-    
+
     const messageId = ++this.messageId;
     const message = {
       id: messageId,
@@ -45,13 +47,13 @@ export class BridgeService {
       data,
       source: this.source,
       target,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 发送消息:`, {
       id: messageId,
       type,
-      hasTabId: !!tabId
+      hasTabId: !!tabId,
     });
 
     return new Promise((resolve, reject) => {
@@ -63,8 +65,10 @@ export class BridgeService {
 
       // 保存请求信息
       this.pendingRequests.set(messageId, {
-        resolve, reject,
-        timeoutId, type
+        resolve,
+        reject,
+        timeoutId,
+        type,
       });
 
       // 发送消息
@@ -102,12 +106,14 @@ export class BridgeService {
    * @param {Function} sendResponse - 响应函数
    */
   async handleMessage(message, sender, sendResponse) {
-    const { id, type, data, source, target, timestamp } = message;
+    const { id, type, data, source } = message;
 
     try {
       // 处理请求消息
       const handler = this.eventHandlers.get(type);
-      if (handler === undefined)  throw new Error(`未知消息类型: ${type}`);
+      if (handler === undefined) {
+        throw new Error(`未知消息类型: ${type}`);
+      }
       // 异步处理请求
       handler(data, sender).then(response => {
         console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${source} 返回响应:`, {
@@ -115,9 +121,9 @@ export class BridgeService {
           type,
           status: response?.status,
           hasError: !!response?.error,
-          source: this.source
+          source: this.source,
         });
-        
+
         const responseMessage = {
           id,
           type: `${type}_RESPONSE`,
@@ -126,20 +132,20 @@ export class BridgeService {
           error: response.error?.message,
           source: this.source,
           target: source,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         sendResponse(responseMessage);
-      })
+      });
     } catch (error) {
       console.error('消息处理错误:', error);
       sendResponse({
         id,
         type: `${type}_RESPONSE`,
-        status: MESSAGE_STATUS.ERROR, 
+        status: MESSAGE_STATUS.ERROR,
         error: error.message,
         source: this.source,
         target: source,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }
@@ -173,26 +179,24 @@ export class BridgeService {
 
     const tabs = await chrome.tabs.query({});
     const promises = tabs.map(tab => {
-      return this.sendMessage(type, data, { tabId: tab.id })
-        .catch(error => {
-          console.warn(`广播到tab ${tab.id}失败:`, error);
-        });
+      return this.sendMessage(type, data, { tabId: tab.id }).catch(error => {
+        console.warn(`广播到tab ${tab.id}失败:`, error);
+      });
     });
 
     await Promise.allSettled(promises);
   }
-
 
   /**
    * 销毁服务
    */
   destroy() {
     // 清理未完成的请求
-    for (const [id, request] of this.pendingRequests) {
+    for (const request of this.pendingRequests.values()) {
       clearTimeout(request.timeoutId);
       request.reject(new Error('服务已销毁'));
     }
     this.pendingRequests.clear();
     this.eventHandlers.clear();
   }
-} 
+}

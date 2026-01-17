@@ -14,11 +14,15 @@ export class SettingsService {
     showing: true,
     pin: {
       right: '20px',
-      bottom: '20px'
+      bottom: '20px',
     },
     darkMode: false,
     provider: CONFIG.DEFAULT_PROVIDER,
     apiKeys: {},
+    groupIDs: {},
+    models: {},
+    temperatures: {},
+    testResults: {},
   };
 
   async saveFloating(position) {
@@ -139,6 +143,38 @@ export class SettingsService {
     await this.#saveSettings('apiKeys', apiKeys);
   }
 
+  async loadModels() {
+    return await this.#loadSettings('models');
+  }
+
+  async saveModels(models) {
+    await this.#saveSettings('models', models);
+  }
+
+  async loadTemperatures() {
+    return await this.#loadSettings('temperatures');
+  }
+
+  async saveTemperatures(temperatures) {
+    await this.#saveSettings('temperatures', temperatures);
+  }
+
+  async loadGroupIDs() {
+    return await this.#loadSettings('groupIDs');
+  }
+
+  async saveGroupIDs(groupIDs) {
+    await this.#saveSettings('groupIDs', groupIDs);
+  }
+
+  async loadTestResults() {
+    return (await this.#loadSettings('testResults')) || {};
+  }
+
+  async saveTestResults(results) {
+    await this.#saveSettings('testResults', results);
+  }
+
   /**
    * 保存设置到存储
    * @param {string} key - 设置键名
@@ -172,4 +208,4 @@ export class SettingsService {
     );
     await chrome.storage.sync.remove(keys);
   }
-} 
+}

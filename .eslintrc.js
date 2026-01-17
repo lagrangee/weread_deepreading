@@ -1,16 +1,17 @@
 module.exports = {
   env: {
     browser: true,
-    es2021: true,
+    es2022: true,
     node: true,
     jest: true,
+    webextensions: true,
   },
   extends: [
     'eslint:recommended',
     'plugin:prettier/recommended',
   ],
   parserOptions: {
-    ecmaVersion: 12,
+    ecmaVersion: 2022,
     sourceType: 'module',
   },
   rules: {
@@ -41,7 +42,7 @@ module.exports = {
     'key-spacing': ['error', { beforeColon: false, afterColon: true }],
     'keyword-spacing': ['error', { before: true, after: true }],
     'linebreak-style': ['error', 'unix'],
-    'max-len': ['error', { code: 100, ignoreComments: true }],
+    'max-len': ['error', { code: 100, ignoreComments: true, ignoreUrls: true }],
     'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
     'no-trailing-spaces': 'error',
     'object-curly-spacing': ['error', 'always'],

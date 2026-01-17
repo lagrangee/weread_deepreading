@@ -9,7 +9,7 @@ import { marked } from '../../../lib/marked.min.js';
 export class ChatComponent {
   /** @type {HTMLElement} 聊天容器元素 */
   #container;
-  
+
   /** @type {string} 当前选中的AI服务商 */
   #currentProvider;
 
@@ -36,12 +36,18 @@ export class ChatComponent {
 
   /** @type {number} indicator显示/隐藏的防抖定时器 */
   #indicatorTimeout = null;
-  
+
+  /** @type {boolean} 是否是程序触发的滚动（用于区分用户手动滚动） */
+  #isProgrammaticScroll = false;
+
   /** @type {Object.<string, string>} 支持的AI服务商配置 */
   static #providers = {
-    wenxin: '文心一言',
-    qianwen: '通义千问',
+    qianwen: '千问',
     doubao: '豆包',
+    kimi: 'Kimi',
+    minimax: 'MiniMax',
+    zhipu: '智谱',
+    wenxin: '文心一言',
     deepseek: 'DeepSeek'
   };
 
@@ -110,15 +116,21 @@ export class ChatComponent {
       </button>
     `;
     this.#newContentIndicator.style.display = 'none';
-    
+
     // 绑定点击事件
     const scrollBtn = this.#newContentIndicator.querySelector('.scroll-to-bottom-btn');
     scrollBtn.addEventListener('click', () => {
+      // 清除防抖定时器和用户滚动状态，确保后续流式内容能正确自动滚动
+      if (this.#scrollTimeout) {
+        clearTimeout(this.#scrollTimeout);
+        this.#scrollTimeout = null;
+      }
+      this.#userScrolling = false;
       this.#enableAutoScroll();
       this.scrollToBottom();
       this.#hideNewContentIndicator();
     });
-    
+
     // 插入到容器的父元素中
     const parentElement = this.#container.parentElement;
     if (parentElement) {
@@ -131,6 +143,11 @@ export class ChatComponent {
    * @private
    */
   #handleScroll() {
+    // 如果是程序触发的滚动，直接忽略
+    if (this.#isProgrammaticScroll) {
+      return;
+    }
+
     // 防抖处理
     if (this.#scrollTimeout) {
       clearTimeout(this.#scrollTimeout);
@@ -152,7 +169,7 @@ export class ChatComponent {
   #checkScrollPosition() {
     const { scrollTop, scrollHeight, clientHeight } = this.#container;
     const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-    
+
     // 如果距离底部小于50px，认为用户在关注底部内容
     if (distanceFromBottom < 50) {
       // 只有在状态发生变化时才更新
@@ -194,7 +211,7 @@ export class ChatComponent {
       if (this.#indicatorTimeout) {
         clearTimeout(this.#indicatorTimeout);
       }
-      
+
       this.#indicatorTimeout = setTimeout(() => {
         if (this.#newContentIndicator) {
           this.#newContentIndicator.style.display = 'flex';
@@ -214,7 +231,7 @@ export class ChatComponent {
         clearTimeout(this.#indicatorTimeout);
         this.#indicatorTimeout = null;
       }
-      
+
       this.#newContentIndicator.style.display = 'none';
     }
   }
@@ -222,14 +239,17 @@ export class ChatComponent {
   /**
    * 添加消息到聊天界面
    * @param {string} content - 消息内容
-   * @param {'user'|'ai'|'error'} type - 消息类型
+   * @param {string} type - 消息类型，多个类名用空格分隔（如 'ai'、'system system-ready'）
    */
   appendMessage(content, type) {
     const messageElement = document.createElement('div');
-    messageElement.classList.add('message', type);
-    
+    messageElement.classList.add('message');
+    if (type) {
+      messageElement.classList.add(...type.split(' ').filter(c => c.trim()));
+    }
+
     messageElement.innerHTML = marked.parse(content);
-    
+
     this.#container.appendChild(messageElement);
     this.scrollToBottom();
     return messageElement;
@@ -252,14 +272,14 @@ export class ChatComponent {
     // 创建AI消息元素用于流式显示
     this.#currentStreamElement = document.createElement('div');
     this.#currentStreamElement.classList.add('message', 'ai', 'streaming');
-    
+
     // 初始内容为游标
     this.#currentStreamElement.innerHTML = '<span class="stream-cursor">▎</span>';
-    
+
     this.#container.appendChild(this.#currentStreamElement);
     this.#accumulatedStreamContent = '';
     this.scrollToBottom();
-    
+
     return this.#currentStreamElement;
   }
 
@@ -271,20 +291,20 @@ export class ChatComponent {
     if (!this.#currentStreamElement || !chunk) return;
 
     this.#accumulatedStreamContent += chunk;
-    
+
     // 渲染Markdown内容
     const renderedContent = marked.parse(this.#accumulatedStreamContent);
-    
+
     // 创建临时容器来解析HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = renderedContent;
-    
+
     // 在最后一个文本节点后插入游标
     this.#insertCursorAtEnd(tempDiv);
-    
+
     // 更新实际内容
     this.#currentStreamElement.innerHTML = tempDiv.innerHTML;
-    
+
     // 智能滚动：只在满足条件时才滚动
     this.#smartScroll();
   }
@@ -317,7 +337,7 @@ export class ChatComponent {
       const cursor = document.createElement('span');
       cursor.className = 'stream-cursor';
       cursor.textContent = '▎';
-      
+
       lastTextNode.parentNode.insertBefore(cursor, lastTextNode.nextSibling);
     } else {
       // 如果没有文本节点，直接在容器末尾添加游标
@@ -336,7 +356,7 @@ export class ChatComponent {
 
     // 移除流式状态
     this.#currentStreamElement.classList.remove('streaming');
-    
+
     // 移除所有游标
     const cursors = this.#currentStreamElement.querySelectorAll('.stream-cursor');
     cursors.forEach(cursor => cursor.remove());
@@ -349,7 +369,7 @@ export class ChatComponent {
     // 清理状态
     this.#currentStreamElement = null;
     this.#accumulatedStreamContent = '';
-    
+
     // 智能滚动：只在用户没有禁用自动滚动时才滚动
     this.#smartScroll();
   }
@@ -362,18 +382,18 @@ export class ChatComponent {
     if (this.#currentStreamElement) {
       this.#currentStreamElement.classList.remove('streaming');
       this.#currentStreamElement.classList.add('error');
-      
+
       // 移除游标
       const cursors = this.#currentStreamElement.querySelectorAll('.stream-cursor');
       cursors.forEach(cursor => cursor.remove());
-      
+
       this.#currentStreamElement.remove();
-      
+
       // 清理状态
       this.#currentStreamElement = null;
       this.#accumulatedStreamContent = '';
     }
-    
+
     // 也显示一个临时错误提示
     this.showError('请求失败', new Error(errorMessage));
   }
@@ -427,7 +447,7 @@ export class ChatComponent {
     while (this.#container.firstChild) {
       this.#container.removeChild(this.#container.firstChild);
     }
-    
+
     // 清理流式状态
     this.#currentStreamElement = null;
     this.#accumulatedStreamContent = '';
@@ -438,19 +458,14 @@ export class ChatComponent {
    * @private
    */
   #smartScroll() {
-    // 如果用户正在滚动，不要自动滚动
+    // 如果用户正在滚动，不要自动滚动，并显示新内容提示
     if (this.#userScrolling) {
-      this.#showNewContentIndicator();
-      return;
-    }
-
-    // 检查是否真的需要滚动（避免频繁的滚动操作）
-    const { scrollTop, scrollHeight, clientHeight } = this.#container;
-    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-    
-    // 如果距离底部小于20px，认为已经在底部，不需要滚动
-    if (distanceFromBottom < 20) {
-      this.#hideNewContentIndicator();
+      // 只有当不在底部附近时才显示 indicator
+      const { scrollTop, scrollHeight, clientHeight } = this.#container;
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      if (distanceFromBottom > 50) {
+        this.#showNewContentIndicator();
+      }
       return;
     }
 
@@ -459,8 +474,19 @@ export class ChatComponent {
       this.scrollToBottom();
       this.#hideNewContentIndicator();
     } else {
-      // 否则显示新内容提示
-      this.#showNewContentIndicator();
+      // 检查是否需要显示新内容提示
+      const { scrollTop, scrollHeight, clientHeight } = this.#container;
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+      // 只有当距离底部超过50px时才显示提示
+      if (distanceFromBottom > 50) {
+        this.#showNewContentIndicator();
+      } else {
+        // 距离底部很近，自动恢复自动滚动
+        this.#enableAutoScroll();
+        this.scrollToBottom();
+        this.#hideNewContentIndicator();
+      }
     }
   }
 
@@ -468,7 +494,13 @@ export class ChatComponent {
    * 滚动到底部
    */
   scrollToBottom() {
+    // 设置程序滚动标志，防止触发 scroll 事件时被误认为是用户滚动
+    this.#isProgrammaticScroll = true;
     this.#container.scrollTop = this.#container.scrollHeight;
+    // 用 requestAnimationFrame 确保滚动完成后再重置标志
+    requestAnimationFrame(() => {
+      this.#isProgrammaticScroll = false;
+    });
   }
 
   /**
@@ -510,28 +542,28 @@ export class ChatComponent {
     // 清理流式状态
     this.#currentStreamElement = null;
     this.#accumulatedStreamContent = '';
-    
+
     // 清理滚动相关状态
     this.#autoScroll = true;
     this.#userScrolling = false;
-    
+
     // 清理定时器
     if (this.#scrollTimeout) {
       clearTimeout(this.#scrollTimeout);
       this.#scrollTimeout = null;
     }
-    
+
     if (this.#indicatorTimeout) {
       clearTimeout(this.#indicatorTimeout);
       this.#indicatorTimeout = null;
     }
-    
+
     // 移除新内容提示器
     if (this.#newContentIndicator && this.#newContentIndicator.parentElement) {
       this.#newContentIndicator.parentElement.removeChild(this.#newContentIndicator);
       this.#newContentIndicator = null;
     }
-    
+
     // 移除事件监听器
     if (this.#boundHandleScroll) {
       this.#container.removeEventListener('scroll', this.#boundHandleScroll);

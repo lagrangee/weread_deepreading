@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "微信读书深度阅读助手",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "微信读书深度阅读助手，提供解释、消化、兼听等功能",
   "author": "lagrangee",
   "homepage_url": "https://github.com/lagrangee/weread-deepreading",
@@ -11,13 +11,16 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://aip.baidubce.com/*",
+    "https://*.baidubce.com/*",
     "https://dashscope.aliyuncs.com/*",
-    "https://api.doubao.com/*",
-    "https://api.deepseek.com/*"
+    "https://*.volces.com/*",
+    "https://api.moonshot.cn/*",
+    "https://api.minimaxi.com/*",
+    "https://open.bigmodel.ai/*",
+    "https://open.bigmodel.cn/*",
+    "https://weread.qq.com/*"
   ],
   "action": {
-    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "32": "assets/icons/icon32.png",
@@ -29,11 +32,19 @@
   "background": {
     "service_worker": "background.bundle.js"
   },
+  "options_page": "popup/popup.html",
   "content_scripts": [
     {
-      "matches": ["https://weread.qq.com/web/reader/*"],
-      "js": ["content-vendor.bundle.js", "content.bundle.js"],
-      "css": ["content/assistant-panel.css"],
+      "matches": [
+        "https://weread.qq.com/web/reader/*"
+      ],
+      "js": [
+        "content-vendor.bundle.js",
+        "content.bundle.js"
+      ],
+      "css": [
+        "content/assistant-panel.css"
+      ],
       "run_at": "document_end"
     }
   ],
@@ -43,8 +54,13 @@
         "assets/icons/*",
         "content/assistant-panel.html"
       ],
-      "matches": ["https://weread.qq.com/*"],
-      "extension_types": ["extension", "content_script"]
+      "matches": [
+        "https://weread.qq.com/*"
+      ],
+      "extension_types": [
+        "extension",
+        "content_script"
+      ]
     }
   ],
   "icons": {
@@ -54,4 +70,4 @@
     "64": "assets/icons/icon64.png",
     "128": "assets/icons/icon128.png"
   }
-} 
+}

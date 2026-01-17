@@ -26,18 +26,18 @@ async function initContentScript() {
   try {
     // 解析页面信息
     await parsePageInfo();
-    
+
     // 设置为全局变量供其他组件使用
     window.contentBridge = new ContentBridge();
-    
+
     // 在 bridge 可用后初始化助手面板
     assistantPanel = await AssistantPanel.getInstance(bookName, authorName);
-    
+
     // 设置页面监听器
     setupPageListeners();
 
-    EventUtils.emit('page:change', {isCover: isInCoverPage()});
-    
+    EventUtils.emit('page:change', { isCover: isInCoverPage() });
+
     console.log(`${CONFIG.LOG_PREFIX} Content script 初始化成功`);
   } catch (error) {
     console.error(`${CONFIG.LOG_PREFIX} 初始化失败:`, error);
@@ -51,7 +51,7 @@ async function initContentScript() {
 async function parsePageInfo() {
   const pageTitle = document.title;
   const parts = pageTitle.split('-').map(part => part.trim());
-  
+
   if (parts.length >= 3) {
     bookName = parts[0];
     authorName = parts.length === 3 ? parts[1] : parts[2];
@@ -85,7 +85,9 @@ function isInCoverPage() {
  */
 function setupCoverPageListener() {
   const coverPage = document.querySelector('.horizontalReaderCoverPage');
-  if (!coverPage) return;
+  if (!coverPage) {
+    return;
+  }
 
   const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
@@ -95,10 +97,10 @@ function setupCoverPageListener() {
       }
     });
   });
-  
+
   observer.observe(coverPage, {
     attributes: true,
-    attributeFilter: ['style']
+    attributeFilter: ['style'],
   });
 }
 

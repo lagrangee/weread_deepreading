@@ -6,38 +6,37 @@
 import { CONFIG } from '../../shared/config.js';
 
 export class ChatService {
+  /** @type {Map<string, AbortController>} 存储正在进行的请求，以便取消 */
+  #abortControllers = new Map();
+
   constructor() {
     this.requestCache = new Map();
-    this.streamPorts = new Map(); // 存储流式连接的端口
+    this.streamPorts = new Map();
   }
 
   /**
    * 处理聊天请求（非流式）
-   * @param {Object} data - 请求数据
-   * @returns {Promise<Object>} 处理结果
    */
   async processRequest(data) {
-    const { provider, text, action = 'chat', book, author, isTest = false, apiKey, context } = data;
+    const { provider, text, action = 'chat', book, author, isTest = false, apiKey, context, model, temperature, requestId } = data;
 
     try {
-      if ( provider === undefined) {
-        throw new Error('provider is undefined');
-      }
-      if (isTest) {
-        return await this.testApiConnection(provider, apiKey);
-      }
+      if (!provider) throw new Error('provider is required');
+      if (isTest) return await this.testApiConnection(provider, apiKey, model, temperature);
 
-      // 获取 API Key
-      const key = apiKey || await this.getApiKey(provider);
-      if (!key) {
-        throw new Error(`请先配置 ${CONFIG.PROVIDERS[provider]} 的 API Key`);
-      }
+      const config = await this.#getEffectiveConfig(provider, { apiKey, model, temperature });
+      const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context);
 
-      // 构建提示词
-      const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context );
-
-      // 发送 AI 请求
-      const response = await this.sendAIRequest(provider, key, systemPrompt, userPrompt);
+      const response = await this.#makeRequest({
+        provider,
+        apiKey: config.apiKey,
+        groupId: config.groupId,
+        systemPrompt,
+        userPrompt,
+        model: config.model,
+        temperature: config.temperature,
+        requestId
+      });
 
       return {
         userPrompt,
@@ -47,35 +46,27 @@ export class ChatService {
         timestamp: Date.now()
       };
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log(`${CONFIG.LOG_PREFIX} 请求已手动取消: ${requestId}`);
+        return null;
+      }
       console.error(`${CONFIG.LOG_PREFIX} AI 请求失败:`, error);
       throw error;
     }
   }
 
   /**
-   * 处理流式聊天请求（简化版本，直接通过Port通信）
-   * @param {Object} data - 请求数据
-   * @param {chrome.runtime.Port} port - 通信端口
-   * @returns {Promise<void>}
+   * 处理流式聊天请求
    */
   async processStreamRequest(data, port) {
-    const { provider, text, action = 'chat', book, author, apiKey, context, requestId } = data;
+    const { provider, text, action = 'chat', book, author, apiKey, context, requestId, model, temperature } = data;
 
     try {
-      if (provider === undefined) {
-        throw new Error('provider is undefined');
-      }
+      if (!provider) throw new Error('provider is required');
 
-      // 获取 API Key
-      const key = apiKey || await this.getApiKey(provider);
-      if (!key) {
-        throw new Error(`请先配置 ${CONFIG.PROVIDERS[provider]} 的 API Key`);
-      }
-
-      // 构建提示词
+      const config = await this.#getEffectiveConfig(provider, { apiKey, model, temperature });
       const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context);
 
-      // 发送开始信号
       port.postMessage({
         type: 'start',
         requestId,
@@ -85,27 +76,34 @@ export class ChatService {
         timestamp: Date.now()
       });
 
-      // 发送流式 AI 请求
-      await this.sendAIStreamRequest(provider, key, systemPrompt, userPrompt, (chunk) => {
-        // 直接通过Port发送数据块
-        port.postMessage({
-          type: 'chunk',
-          requestId,
-          text: chunk,
-          timestamp: Date.now()
-        });
+      await this.#makeRequest({
+        provider,
+        apiKey: config.apiKey,
+        groupId: config.groupId,
+        systemPrompt,
+        userPrompt,
+        model: config.model,
+        temperature: config.temperature,
+        requestId,
+        stream: true,
+        onChunk: (chunk) => {
+          port.postMessage({
+            type: 'chunk',
+            requestId,
+            text: chunk,
+            timestamp: Date.now()
+          });
+        }
       });
 
-      // 发送完成信号
-      port.postMessage({
-        type: 'complete',
-        requestId,
-        timestamp: Date.now()
-      });
+      port.postMessage({ type: 'complete', requestId, timestamp: Date.now() });
 
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log(`${CONFIG.LOG_PREFIX} 流式请求已取消: ${requestId}`);
+        return;
+      }
       console.error(`${CONFIG.LOG_PREFIX} AI 流式请求失败:`, error);
-      // 发送错误信号
       port.postMessage({
         type: 'error',
         requestId,
@@ -116,215 +114,108 @@ export class ChatService {
   }
 
   /**
-   * 注册流式连接端口
-   * @param {string} requestId - 请求ID
-   * @param {chrome.runtime.Port} port - 通信端口
+   * 统一请求层 (支持流式和非流式)
    */
-  registerStreamPort(requestId, port) {
-    this.streamPorts.set(requestId, port);
-    
-    // 监听端口断开
-    port.onDisconnect.addListener(() => {
-      this.streamPorts.delete(requestId);
-      console.log(`${CONFIG.LOG_PREFIX} 流式连接断开:`, requestId);
-    });
-  }
+  async #makeRequest({ provider, apiKey, systemPrompt, userPrompt, model, temperature, requestId, stream = false, onChunk }) {
+    const apiConfig = CONFIG.API_ENDPOINTS[provider];
+    if (!apiConfig) throw new Error(`未知的提供商: ${provider}`);
 
-  /**
-   * 构建提示词
-   * @param {string} action - 动作类型
-   * @param {string} text - 用户文本
-   * @param {string} book - 书名
-   * @param {string} author - 作者
-   * @returns {Object} 提示词对象
-   */
-  #buildPrompts(action, text, book, author, context = []) {
-    // 获取系统提示词模板
-    const systemTemplate = CONFIG.PROMPTS.SYSTEM[action] || CONFIG.PROMPTS.SYSTEM.chat;
-    const userTemplate = CONFIG.PROMPTS.USER[action] || CONFIG.PROMPTS.USER.chat;
+    // 管理 AbortController
+    if (requestId) this.cancelRequest(requestId);
+    const controller = new AbortController();
+    if (requestId) this.#abortControllers.set(requestId, controller);
 
-    // 替换模板变量
-    const systemPrompt = systemTemplate
-      .replace('{book}', book || '未知书籍')
-      .replace('{author}', author || '未知作者');
-
-    const userPrompt = userTemplate
-      .replace('{book}', book || '未知书籍')
-      .replace('{author}', author || '未知作者')
-      .replace('{text}', text)
-      .replace('{context}', this.#buildContext(context));
-
-    return { systemPrompt, userPrompt };
-  }
-
-  #buildContext(context) {
-    return context.map(item => `${item.role == "user" ? "我问:" : "你的回答:"}: ${item.content}`).join('\n');
-  }
-
-  /**
-   * 发送 AI 请求（非流式）
-   * @param {string} provider - 提供商
-   * @param {string} apiKey - API Key
-   * @param {string} systemPrompt - 系统提示词
-   * @param {string} userPrompt - 用户提示词
-   * @returns {Promise<string>} AI 响应
-   */
-  async sendAIRequest(provider, apiKey, systemPrompt, userPrompt) {
-    const config = CONFIG.API_ENDPOINTS[provider];
-    if (!config) {
-      throw new Error(`未知的提供商: ${provider}`);
-    }
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    };
+    // 模型兜底逻辑
+    const finalModel = model || apiConfig.model;
 
     const requestBody = {
-      model: config.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ]
-    };
-
-    const response = await fetch(config.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `API 请求失败: ${response.status}`;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage += ` - ${errorData.error?.message || errorText}`;
-      } catch {
-        errorMessage += ` - ${errorText}`;
-      }
-      
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    
-    // 根据不同提供商提取响应
-    switch (provider) {
-      case 'wenxin':
-      case 'qianwen':
-      case 'deepseek':
-      case 'doubao':
-        return data.choices?.[0]?.message?.content || '响应格式错误';
-      default:
-        throw new Error(`未支持的提供商: ${provider}`);
-    }
-  }
-
-  /**
-   * 发送流式 AI 请求
-   * @param {string} provider - 提供商
-   * @param {string} apiKey - API Key
-   * @param {string} systemPrompt - 系统提示词
-   * @param {string} userPrompt - 用户提示词
-   * @param {Function} onChunk - 接收数据块的回调函数
-   * @returns {Promise<void>}
-   */
-  async sendAIStreamRequest(provider, apiKey, systemPrompt, userPrompt, onChunk) {
-    const config = CONFIG.API_ENDPOINTS[provider];
-    if (!config) {
-      throw new Error(`未知的提供商: ${provider}`);
-    }
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'Accept': 'text/event-stream'
-    };
-
-    const requestBody = {
-      model: config.model,
+      model: finalModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      stream: true  // 启用流式输出
+      stream
+    };
+    if (temperature !== undefined) requestBody.temperature = temperature;
+
+    // 清洗参数，确保没有不可见字符
+    const sanitize = (val) => (val || '').trim().replace(/[^\x00-\x7F]/g, '');
+    const sanitizedApiKey = sanitize(apiKey);
+
+    // 构造请求头
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${sanitizedApiKey}`
     };
 
-    const response = await fetch(config.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `API 请求失败: ${response.status}`;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage += ` - ${errorData.error?.message || errorText}`;
-      } catch {
-        errorMessage += ` - ${errorText}`;
-      }
-      
-      throw new Error(errorMessage);
+    // 动态设置 Accept 头部。智谱等服务商在非流式模式下对 Accept: text/event-stream 极为敏感
+    if (stream) {
+      headers['Accept'] = 'text/event-stream';
+    } else {
+      headers['Accept'] = 'application/json';
     }
 
-    // 处理流式响应
-    await this.#processStreamResponse(response, provider, onChunk);
+    // 针对 MiniMax 等国产供应商的多重授权兼容方案
+    if (provider === 'minimax') {
+      headers['api-key'] = sanitizedApiKey; // 增加冗余头，提升网关识别鲁棒性
+    }
+
+    try {
+      const response = await fetch(apiConfig.url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || errorData.message || `API Error: ${response.status}`);
+      }
+
+      if (stream) {
+        await this.#parseSSEResponse(response, provider, onChunk, controller.signal);
+        return null;
+      } else {
+        const data = await response.json();
+        return this.#extractContent(data, provider);
+      }
+    } finally {
+      if (requestId) this.#abortControllers.delete(requestId);
+    }
   }
 
   /**
-   * 处理流式响应数据
-   * @param {Response} response - fetch 响应对象
-   * @param {string} provider - AI 提供商
-   * @param {Function} onChunk - 接收数据块的回调函数
-   * @returns {Promise<void>}
+   * 鲁棒的 SSE 解析引擎
    */
-  async #processStreamResponse(response, provider, onChunk) {
+  async #parseSSEResponse(response, provider, onChunk, signal) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let partialLine = '';
 
     try {
       while (true) {
         const { done, value } = await reader.read();
-        
-        if (done) {
-          break;
-        }
+        if (done) break;
+        if (signal.aborted) throw new AbortError();
 
-        // 解码数据块
-        buffer += decoder.decode(value, { stream: true });
-        
-        // 按行分割数据
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // 保留不完整的行
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = (partialLine + chunk).split('\n');
+        partialLine = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.trim() === '') continue;
-          
-          // 处理 SSE 格式的数据
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6); // 移除 "data: " 前缀
-            
-            if (data === '[DONE]') {
-              // 流结束标志
-              break;
-            }
+          const trimmedLine = line.trim();
+          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
 
-            try {
-              const jsonData = JSON.parse(data);
-              const content = this.#extractStreamContent(jsonData, provider);
-              
-              if (content) {
-                onChunk(content);
-              }
-            } catch (error) {
-              console.warn('解析流数据失败:', error, data);
-            }
+          const dataStr = trimmedLine.slice(6);
+          if (dataStr === '[DONE]') break;
+
+          try {
+            const json = JSON.parse(dataStr);
+            const content = this.#extractContent(json, provider, true);
+            if (content) onChunk(content);
+          } catch (e) {
+            console.warn(`${CONFIG.LOG_PREFIX} 解析 SSE 数据失败:`, e, dataStr);
           }
         }
       }
@@ -334,73 +225,110 @@ export class ChatService {
   }
 
   /**
-   * 从流式响应中提取内容
-   * @param {Object} data - JSON 数据
-   * @param {string} provider - AI 提供商
-   * @returns {string|null} 提取的内容
+   * 统一内容提取策略
    */
-  #extractStreamContent(data, provider) {
-    try {
-      switch (provider) {
-        case 'wenxin':
-        case 'qianwen':
-        case 'deepseek':
-        case 'doubao':
-          // 大多数提供商使用相似的格式
-          return data.choices?.[0]?.delta?.content || null;
-        default:
-          return data.choices?.[0]?.delta?.content || null;
-      }
-    } catch (error) {
-      console.warn('提取流内容失败:', error);
-      return null;
+  #extractContent(data, provider, isStream = false) {
+    // 适配绝大多数 OpenAI 格式及其变体 (DeepSeek, Doubao, Qianwen...)
+    if (isStream) {
+      return data.choices?.[0]?.delta?.content || null;
+    }
+    return data.choices?.[0]?.message?.content || data.choices?.[0]?.text || null;
+  }
+
+  /**
+   * 获取最终生效配置 (防御性清洗)
+   */
+  async #getEffectiveConfig(provider, overrides) {
+    const saved = await this.getCustomConfigs(provider);
+
+    // 基础清洗：去除首尾空格及所有非 ASCII 字符（防止不可见干扰字符）
+    const sanitize = (val) => typeof val === 'string' ? val.trim().replace(/[^\x00-\x7F]/g, '') : val;
+
+    return {
+      apiKey: sanitize(overrides.apiKey || saved.apiKey),
+      model: sanitize(overrides.model || saved.model),
+      temperature: overrides.temperature !== undefined ? overrides.temperature : saved.temperature
+    };
+  }
+
+  /**
+   * 取消指定请求
+   */
+  cancelRequest(requestId) {
+    if (this.#abortControllers.has(requestId)) {
+      this.#abortControllers.get(requestId).abort();
+      this.#abortControllers.delete(requestId);
     }
   }
 
   /**
-   * 测试 API 连接
-   * @param {string} provider - 提供商
-   * @param {string} apiKey - API Key
-   * @returns {Promise<Object>} 测试结果
+   * 构建提示词 (原逻辑保留并增强)
    */
-  async testApiConnection(provider, apiKey) {
-    try {
-      const response = await this.sendAIRequest(
-        provider,
-        apiKey,
-        '你是一个测试助手。',
-        '请回复"连接成功"'
-      );
+  #buildPrompts(action, text, book, author, context = []) {
+    const systemTemplate = CONFIG.PROMPTS.SYSTEM[action] || CONFIG.PROMPTS.SYSTEM.chat;
+    const userTemplate = CONFIG.PROMPTS.USER[action] || CONFIG.PROMPTS.USER.chat;
 
+    const systemPrompt = systemTemplate
+      .replace('{book}', book || '未知书籍')
+      .replace('{author}', author || '未知作者');
+
+    const userPrompt = userTemplate
+      .replace('{book}', book || '未知书籍')
+      .replace('{author}', author || '未知作者')
+      .replace('{text}', text)
+      .replace('{context}', context.length > 0 ? this.#buildContext(context) : '');
+
+    return { systemPrompt, userPrompt };
+  }
+
+  #buildContext(context) {
+    return context.map(item => `${item.role == "user" ? "我问" : "AI回答"}: ${item.content}`).join('\n');
+  }
+
+  /**
+   * 测试 API 连接 (验证完整逻辑：Key + Model + Temp)
+   */
+  async testApiConnection(provider, apiKey, model, temperature) {
+    // 强制走一次配置清洗逻辑，确保测试路径与真实请求完全一致
+    const config = await this.#getEffectiveConfig(provider, { apiKey, model, temperature });
+
+    const response = await this.#makeRequest({
+      provider,
+      apiKey: config.apiKey,
+      systemPrompt: '你是一个测试助手。',
+      userPrompt: '请回复"OK"',
+      model: config.model,
+      temperature: config.temperature,
+      requestId: 'test-connection'
+    });
+
+    let message = '连接成功';
+    // 如果用户的输入被纠错逻辑修改了，明确告知用户
+    if (model && model.trim() !== config.model) {
+      message += ` (模型名已自动修正为: ${config.model})`;
+    }
+
+    return { success: true, message, response: response?.substring(0, 20) };
+  }
+
+  async getCustomConfigs(provider) {
+    try {
+      const result = await chrome.storage.sync.get(['apiKeys', 'models', 'temperatures']);
       return {
-        success: true,
-        message: 'API 连接测试成功',
-        response: response.substring(0, 50) // 截取前50字符作为验证
+        apiKey: result.apiKeys?.[provider] || null,
+        model: result.models?.[provider] || null,
+        temperature: result.temperatures?.[provider] !== undefined ? Number(result.temperatures[provider]) : undefined
       };
-    } catch (error) {
-      throw error;
+    } catch {
+      return { apiKey: null, model: null, temperature: undefined };
     }
   }
 
-  /**
-   * 获取 API Key
-   * @param {string} provider - 提供商
-   * @returns {Promise<string>} API Key
-   */
-  async getApiKey(provider) {
-    try {
-      const { apiKeys = {} } = await chrome.storage.sync.get('apiKeys');
-      return apiKeys[provider];
-    } catch (error) {
-      console.error('获取 API Key 失败:', error);
-      return null;
-    }
+  registerStreamPort(requestId, port) {
+    this.streamPorts.set(requestId, port);
+    port.onDisconnect.addListener(() => {
+      this.cancelRequest(requestId);
+      this.streamPorts.delete(requestId);
+    });
   }
-
-  /**
-   * 清理请求缓存
-   */
-  clearCache() {
-    this.requestCache.clear();
-  }
-} 
+}

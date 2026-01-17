@@ -5,16 +5,27 @@
 
 import { CONFIG } from '../shared/config.js';
 import { BridgeService } from '../shared/bridge-service.js';
-import { BACKGROUND_MESSAGES, MESSAGE_STATUS } from '../shared/message-types.js';
+import { BACKGROUND_MESSAGES, POPUP_MESSAGES, MESSAGE_STATUS } from '../shared/message-types.js';
 import { ChatService } from './services/chat-service.js';
 
 export class MessageRouter {
   constructor() {
     this.bridge = new BridgeService('background');
     this.chatService = new ChatService();
-    
+
     this.setupRoutes();
     this.setupPortConnections();
+    this.setupActionClick();
+  }
+
+  /**
+   * 设置图标点击事件
+   */
+  setupActionClick() {
+    chrome.action.onClicked.addListener(() => {
+      console.log(`${CONFIG.LOG_PREFIX} 插件图标被点击，打开设置页面`);
+      chrome.runtime.openOptionsPage();
+    });
   }
 
   /**
@@ -22,34 +33,36 @@ export class MessageRouter {
    */
   setupRoutes() {
     // AI聊天路由 - 非流式
-    this.bridge.on(BACKGROUND_MESSAGES.CHAT.REQUEST, async (data, sender) => {
+    this.bridge.on(BACKGROUND_MESSAGES.CHAT.REQUEST, async (data, _sender) => {
       console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 CHAT_REQUEST:`, data);
       try {
         const response = await this.chatService.processRequest(data);
         return {
           status: MESSAGE_STATUS.SUCCESS,
-          data: response
+          data: response,
         };
       } catch (error) {
         console.error(`${CONFIG.LOG_PREFIX} AI聊天处理失败:`, error);
         return {
           status: MESSAGE_STATUS.ERROR,
-          error
+          error,
         };
       }
     });
 
-    this.bridge.on(BACKGROUND_MESSAGES.CHAT.TEST_API_KEY, async (data, sender) => {
+    this.bridge.on(BACKGROUND_MESSAGES.CHAT.TEST_API_KEY, async (data, _sender) => {
       console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 TEST_API_KEY:`, data);
       try {
         const response = await this.chatService.processRequest({
           provider: data.provider,
           apiKey: data.apiKey,
+          model: data.model,
+          temperature: data.temperature,
           isTest: true,
         });
         return {
           status: MESSAGE_STATUS.SUCCESS,
-          data: response
+          data: response,
         };
       } catch (error) {
         console.error(`${CONFIG.LOG_PREFIX} API Key 测试失败:`, error);
@@ -59,22 +72,28 @@ export class MessageRouter {
         };
       }
     });
+
+    this.bridge.on(POPUP_MESSAGES.SYSTEM.OPEN_OPTIONS, async () => {
+      console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 OPEN_OPTIONS`);
+      chrome.runtime.openOptionsPage();
+      return { status: MESSAGE_STATUS.SUCCESS };
+    });
   }
 
   /**
    * 设置Port连接处理流式请求
    */
   setupPortConnections() {
-    chrome.runtime.onConnect.addListener((port) => {
+    chrome.runtime.onConnect.addListener(port => {
       if (port.name === BACKGROUND_MESSAGES.CHAT.REQUEST_STREAM) {
         console.log(`${CONFIG.LOG_PREFIX} 建立流式聊天连接`);
-        
-        port.onMessage.addListener(async (data) => {
+
+        port.onMessage.addListener(async data => {
           const { requestId } = data;
-          
+
           // 注册端口
           this.chatService.registerStreamPort(requestId, port);
-          
+
           // 处理流式请求
           await this.chatService.processStreamRequest(data, port);
         });
@@ -92,7 +111,7 @@ export class MessageRouter {
   destroy() {
     this.bridge.destroy();
   }
-} 
+}
 
 // 初始化消息路由器
-const messageRouter = new MessageRouter();
+new MessageRouter();

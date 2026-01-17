@@ -43,3 +43,5 @@ temp/
 # Misc
 .DS_Store
 Thumbs.db 
+.eslintrc.js
+.eslintignore
