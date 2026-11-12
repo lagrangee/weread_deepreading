@@ -1577,3 +1577,91 @@ header.menu-header {
 .onboarding-banner .onboarding-btn:active {
   transform: translateY(0);
 }
+
+/* 插件自己的手机端入口；展开后才显示二维码，不覆盖聊天输入。 */
+.weread-deepreading-helper .deepreading-promotion {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.weread-deepreading-helper .deepreading-promotion[hidden] { display: none; }
+.weread-deepreading-helper .deepreading-promotion-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.weread-deepreading-helper .deepreading-dismiss {
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+.weread-deepreading-helper .deepreading-dismiss:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+.weread-deepreading-helper .deepreading-download summary {
+  width: fit-content;
+  padding: 4px 0;
+  color: var(--color-primary-hover);
+  cursor: pointer;
+}
+.weread-deepreading-helper .deepreading-download-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.weread-deepreading-helper .deepreading-download-content img {
+  display: block;
+  flex: none;
+  width: 128px;
+  height: 128px;
+  max-width: none;
+  background: #fff;
+}
+.weread-deepreading-helper .deepreading-download-content p {
+  margin: 0 0 8px;
+}
+.weread-deepreading-helper .deepreading-download-content a {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.weread-deepreading-helper .deepreading-promotion :focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.weread-deepreading-helper.dark-mode .deepreading-promotion {
+  background: var(--color-dark-bg-secondary);
+  color: var(--color-dark-text);
+  border-color: var(--color-dark-border);
+}
+.weread-deepreading-helper.dark-mode .deepreading-promotion a,
+.weread-deepreading-helper.dark-mode .deepreading-promotion summary {
+  color: #9bc3ff;
+}
+.weread-deepreading-helper.dark-mode .deepreading-dismiss {
+  color: var(--color-dark-text-secondary);
+}
+.weread-deepreading-helper .stream-error-note {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid currentColor;
+  font-size: 0.9em;
+}
+@media (max-width: 420px) {
+  .weread-deepreading-helper .deepreading-download-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

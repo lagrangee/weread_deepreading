@@ -1,65 +1,27 @@
-# 微信读书助手 (WeRead Assistant)
+# 微信读书深度阅读助手：商店描述
 
-## 简短描述 (Short Description)
-智能阅读助手，为微信读书用户提供文本解释、内容消化和兼听等AI辅助功能。
+## 简短描述
 
-## 详细描述 (Detailed Description)
+为微信读书提供解释、消化、兼听与持续追问，支持自备 AI Key。
 
-### 中文描述
-微信读书助手是一款智能阅读增强工具，致力于提升您的阅读体验和理解深度。
+## 详细描述（可复制到 Chrome Web Store）
 
-主要功能：
-- 📚 智能解释：一键解释难懂的段落和术语
-- 📝 内容消化：将复杂内容转化为易于理解的概要
-- 👂 兼听分析：从不同角度分析文本，提供多维度见解
-- 🎨 优雅界面：支持明暗主题，可自由切换内嵌/悬浮模式
-- ⌨️ 快捷操作：完整的快捷键支持，提升使用效率
-- 🔒 隐私保护：本地处理数据，保护您的阅读隐私
+读到一个陌生概念、一段难懂的论证，或一个值得推敲的观点，选中文字并点击微信读书的「复制」，在助手面板中解释、消化或兼听，也可以继续追问。
 
-支持多个AI服务商：
-- 文心一言
-- 通义千问
-- 豆包
-- DeepSeek
+- 解释一下：理解术语、概念与背景。
+- 消化一下：梳理复杂段落的观点和理由。
+- 兼听一下：比较不同角度、支持和反对的论据。
+- 流式回答与持续追问；可停止生成，保留已经收到的内容。
+- 浮动或内嵌面板，支持明暗主题、字体调整与键盘操作。
+- Enter 发送，Shift+Enter 换行，兼容中文输入法。
 
-使用说明：
-1. 在微信读书网页版选中文本
-2. 点击扩展图标或使用快捷键
-3. 选择需要的功能（解释/消化/兼听）
-4. 获取AI助手的智能分析结果
+支持千问、豆包、Kimi、MiniMax、智谱、文心一言。AI 功能需自行取得服务商的 API Key，模型服务可能另行计费。API Key、模型配置和界面偏好可随 Chrome 账号同步；选段与对话直接发送给所选 AI 服务商，不经过开发者服务器。当前网页内的对话不跨设备同步，也不在刷新后保留。
 
-### English Description
-WeRead Assistant is an intelligent reading enhancement tool designed to improve your reading experience on WeRead platform.
+手机阅读时也想这样提问？同一作者制作的「深读」iPhone App，同样支持解释、消化、兼听，并按书保存讨论。
+App Store：https://apps.apple.com/app/id6827442865
+需 iOS 17 或以上、自备 AI Key。讨论保存在手机，暂不与插件同步。
 
-Key Features:
-- 📚 Smart Explanation: Instantly explain difficult passages and terms
-- 📝 Content Digest: Transform complex content into easy-to-understand summaries
-- 👂 Multi-perspective Analysis: Analyze text from different angles
-- 🎨 Elegant Interface: Support light/dark themes, switchable between inline/floating modes
-- ⌨️ Shortcuts: Complete keyboard shortcut support for efficiency
-- 🔒 Privacy Protection: Local data processing to protect your reading privacy
+本插件与深读均为独立产品，与微信读书或模型服务商不存在官方隶属或合作关系。AI 回答可能有误，请结合原文判断。
 
-Supported AI Services:
-- Wenxin
-- Qianwen
-- Doubao
-- DeepSeek
-
-How to Use:
-1. Select text on WeRead web version
-2. Click the extension icon or use shortcuts
-3. Choose desired function (Explain/Digest/Analyze)
-4. Get AI-powered analysis results
-
-## 隐私政策 (Privacy Policy)
-本扩展尊重并保护用户隐私：
-- 仅在必要时访问页面内容
-- 不收集任何个人信息
-- 不追踪用户行为
-- API密钥安全存储在本地
-
-Privacy protection is our priority:
-- Minimal page content access
-- No personal data collection
-- No user behavior tracking
-- Secure local API key storage 
+源码与反馈：https://github.com/lagrangee/weread_deepreading
+数据说明：https://github.com/lagrangee/weread_deepreading/blob/main/PRIVACY.md

@@ -13,6 +13,8 @@ import { ChatComponent } from './chat/chat-component.js';
 import { ChatService } from '../services/chat-service.js';
 import { SettingsService } from '../../shared/settings-service.js';
 import { DOMUtils, EventUtils } from '../utils/index.js';
+import { initAppPromotion } from '../../shared/app-promotion.js';
+import { getKeyboardAction } from '../../shared/keyboard.js';
 
 const MODE_HANDLERS = {
   inline: 'switchToInline',
@@ -138,6 +140,7 @@ export class AssistantPanel {
     this.#initInteractive();
     await this.#loadSettings();
     this.#bindEvents();
+    await initAppPromotion(this.#contentElement);
     this.#setupEventListeners();
     this.#updateInfo();
     this.#addShortcuts();
@@ -166,15 +169,15 @@ export class AssistantPanel {
     providerNameSpan.textContent = name;
 
     // 获取当前服务商的状态
-    const apiKeys = await this.#settingsService.loadAPIKeys() || {};
-    const testResults = await this.#settingsService.loadTestResults() || {};
+    const apiKeys = (await this.#settingsService.loadAPIKeys()) || {};
+    const testResults = (await this.#settingsService.loadTestResults()) || {};
 
     const isConfigured = !!apiKeys[this.#provider];
     const testStatus = testResults[this.#provider];
 
     let statusClass = 'none';
     if (isConfigured) {
-      statusClass = (testStatus === 'error') ? 'fail' : 'ready';
+      statusClass = testStatus === 'error' ? 'fail' : 'ready';
     }
 
     // 更新状态灯样式
@@ -207,35 +210,37 @@ export class AssistantPanel {
       container.appendChild(this.#providerMenu);
     }
 
-    const apiKeys = await this.#settingsService.loadAPIKeys() || {};
-    const testResults = await this.#settingsService.loadTestResults() || {};
+    const apiKeys = (await this.#settingsService.loadAPIKeys()) || {};
+    const testResults = (await this.#settingsService.loadTestResults()) || {};
     const providers = CONFIG.PROVIDERS;
 
-    this.#providerMenu.innerHTML = Object.entries(providers).map(([key, name]) => {
-      const isConfigured = !!apiKeys[key];
-      const testStatus = testResults[key]; // 'success' or 'error'
-      const isActive = key === this.#provider;
+    this.#providerMenu.innerHTML = Object.entries(providers)
+      .map(([key, name]) => {
+        const isConfigured = !!apiKeys[key];
+        const testStatus = testResults[key]; // 'success' or 'error'
+        const isActive = key === this.#provider;
 
-      let statusClass = 'none'; // 默认未配置
-      if (isConfigured) {
-        if (testStatus === 'error') {
-          statusClass = 'fail'; // 配置了但测试失败
-        } else {
-          statusClass = 'ready'; // 配置了且测试成功或未知
+        let statusClass = 'none'; // 默认未配置
+        if (isConfigured) {
+          if (testStatus === 'error') {
+            statusClass = 'fail'; // 配置了但测试失败
+          } else {
+            statusClass = 'ready'; // 配置了且测试成功或未知
+          }
         }
-      }
 
-      return `
+        return `
         <div class="menu-item ${isActive ? 'active' : ''}" data-provider="${key}">
           <span class="status-dot ${statusClass}"></span>
           <span class="name">${name}</span>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     // 绑定菜单项点击事件
     this.#providerMenu.querySelectorAll('.menu-item').forEach(item => {
-      item.addEventListener('click', async (e) => {
+      item.addEventListener('click', async e => {
         e.stopPropagation();
         const newProvider = item.dataset.provider;
         if (newProvider !== this.#provider) {
@@ -260,7 +265,7 @@ export class AssistantPanel {
     this.#providerMenu.classList.add('show');
 
     // 点击外部关闭菜单
-    const closeMenu = (e) => {
+    const closeMenu = e => {
       if (!this.#providerMenu.contains(e.target)) {
         this.#hideProviderMenu();
         document.removeEventListener('click', closeMenu);
@@ -295,7 +300,7 @@ export class AssistantPanel {
   #initInteractive() {
     // 初始化拖拽
     new MenuDrag(this.#contentElement, {
-      onDragEnd: () => this.#saveSizeAndPosition()
+      onDragEnd: () => this.#saveSizeAndPosition(),
     });
 
     // 初始化Pin按钮拖拽
@@ -311,7 +316,7 @@ export class AssistantPanel {
           this.#resizeBodyWidth();
         }
         this.#saveSizeAndPosition();
-      }
+      },
     });
   }
 
@@ -327,56 +332,28 @@ export class AssistantPanel {
     document.removeEventListener('keydown', this.#handleKeyDown);
   }
 
-  #handleKeyDown = (e) => {
-    const key = e.key.toLowerCase();
-
-    if (e.target.classList.contains('chat-input')) {
-      if (key === 'enter') {
-        this.#handleSend();
-        e.preventDefault();
-        e.stopPropagation();
-      }
+  #handleKeyDown = e => {
+    const action = getKeyboardAction(e, this.#isShowing);
+    if (!action) {
       return;
     }
-
-    if (e.target.tagName === 'TEXTAREA') {
-      return;
-    }
-
-    if (!this.#isShowing) {
-      if (key === 'o') {
-        this.show({ force: true });
-      }
-      return;
-    }
-
-    switch (key) {
-      case 't': this.#toggleMode();
-        break;
-
-      case 'escape': this.hide();
-        break;
-
-      case 'a':
-        e.key === 'A' ? this.#setFontSise({ increase: true }) : this.#setFontSise({ decrease: true });
-        break;
-
-      case 'd': this.#toggleDarkMode();
-        break;
-
-      case 'e': this.#handleExplain();
-        break;
-
-      case 'x': this.#handleDigest();
-        break;
-
-      case 'm': this.#handleAnalyze();
-        break;
-
-      case '?': this.#openSettings();
-        break;
-    }
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    const handlers = {
+      send: () => this.#handleSend(),
+      open: () => this.show({ force: true }),
+      close: () => this.hide(),
+      mode: () => this.#toggleMode(),
+      increase: () => this.#setFontSise({ increase: true }),
+      decrease: () => this.#setFontSise({ decrease: true }),
+      theme: () => this.#toggleDarkMode(),
+      explain: () => this.#handleExplain(),
+      digest: () => this.#handleDigest(),
+      analyze: () => this.#handleAnalyze(),
+      settings: () => this.#openSettings(),
+    };
+    handlers[action]();
+  };
 
   /**
    * 拦截事件保证文字正常选择和复制
@@ -391,7 +368,7 @@ export class AssistantPanel {
       }
     });
 
-    EventUtils.on('update:provider', async (provider) => {
+    EventUtils.on('update:provider', async provider => {
       this.#provider = provider;
       this.#updateProvider();
       this.#checkOnboarding(); // 服务商变动时可能涉及 Key 状态更新
@@ -407,32 +384,38 @@ export class AssistantPanel {
     });
 
     /* 拦截选中文本 */
-    this.#wrapperElement.addEventListener('selectstart', (e) => {
+    this.#wrapperElement.addEventListener('selectstart', e => {
       e.stopPropagation();
     });
     /* 拦截右键菜单 */
-    this.#wrapperElement.addEventListener('contextmenu', (e) => {
+    this.#wrapperElement.addEventListener('contextmenu', e => {
       e.stopPropagation();
     });
     /* 拦截 ctrl+c */
-    this.#wrapperElement.addEventListener('keydown', (e) => {
+    this.#wrapperElement.addEventListener('keydown', e => {
       if (e.ctrlKey && (e.key === 'c' || e.key === 'a')) {
         e.stopPropagation();
       }
     });
     // 处理复制事件
-    document.addEventListener('copy', (e) => {
-      const selectedText = window.getSelection().toString();
-      if (selectedText.length === 0) return;
-      if (this.#contentElement.contains(e.target)) {
-        e.preventDefault(); // 阻止默认复制行为
-        e.clipboardData.setData('text/plain', selectedText); // 手动设置剪贴板内容
-        e.stopPropagation(); // 阻止第三方代码修改
-        return;
-      }
-      // 拦截网站复制内容
-      this.show({ force: true, text: selectedText });
-    }, true);
+    document.addEventListener(
+      'copy',
+      e => {
+        const selectedText = window.getSelection().toString();
+        if (selectedText.length === 0) {
+          return;
+        }
+        if (this.#contentElement.contains(e.target)) {
+          e.preventDefault(); // 阻止默认复制行为
+          e.clipboardData.setData('text/plain', selectedText); // 手动设置剪贴板内容
+          e.stopPropagation(); // 阻止第三方代码修改
+          return;
+        }
+        // 拦截网站复制内容
+        this.show({ force: true, text: selectedText });
+      },
+      true
+    );
   }
 
   /**
@@ -464,7 +447,7 @@ export class AssistantPanel {
 
     // 服务商按钮 - 改为显示快捷菜单
     const providerButton = this.#contentElement.querySelector('.menu-button.provider');
-    providerButton.addEventListener('click', (e) => {
+    providerButton.addEventListener('click', e => {
       e.stopPropagation();
       if (this.#providerMenu && this.#providerMenu.classList.contains('show')) {
         this.#hideProviderMenu();
@@ -497,11 +480,14 @@ export class AssistantPanel {
     }
 
     // 监听窗口大小变化
-    window.addEventListener('resize', DOMUtils.debounce(() => {
-      if (this.#isShowing) {
-        DOMUtils.ensureInViewport(this.#contentElement);
-      }
-    }, 100));
+    window.addEventListener(
+      'resize',
+      DOMUtils.debounce(() => {
+        if (this.#isShowing) {
+          DOMUtils.ensureInViewport(this.#contentElement);
+        }
+      }, 100)
+    );
   }
 
   /**
@@ -516,7 +502,9 @@ export class AssistantPanel {
     Object.assign(this.#pinElement.style, pinPosition);
 
     const fontSize = await this.#settingsService.loadFontSize();
-    if (fontSize) this.#setFontSise({ fontSize });
+    if (fontSize) {
+      this.#setFontSise({ fontSize });
+    }
 
     const darkMode = await this.#settingsService.loadDarkMode();
     this.#wrapperElement.classList.toggle('dark-mode', darkMode);
@@ -530,10 +518,11 @@ export class AssistantPanel {
    */
   async #saveSizeAndPosition() {
     const { width, height, left, top } = this.#contentElement.style;
-    if (this.#mode === 'inline')
+    if (this.#mode === 'inline') {
       await this.#settingsService.saveInline({ width });
-    else
+    } else {
       await this.#settingsService.saveFloating({ width, height, left, top });
+    }
   }
 
   /**
@@ -555,9 +544,15 @@ export class AssistantPanel {
    */
   #setFontSise(options) {
     let fontSize = parseFloat(window.getComputedStyle(this.#wrapperElement).fontSize);
-    if (options?.increase && fontSize < 24) fontSize += 1;
-    if (options?.decrease && fontSize > 12) fontSize -= 1;
-    if (options?.fontSize) fontSize = options.fontSize;
+    if (options?.increase && fontSize < 24) {
+      fontSize += 1;
+    }
+    if (options?.decrease && fontSize > 12) {
+      fontSize -= 1;
+    }
+    if (options?.fontSize) {
+      fontSize = options.fontSize;
+    }
     this.#wrapperElement.style.fontSize = `${fontSize}px`;
     this.#settingsService.saveFontSize(fontSize);
   }
@@ -590,7 +585,9 @@ export class AssistantPanel {
     const input = this.#contentElement.querySelector('.chat-input');
     const message = input.value.trim();
 
-    if (!message) return;
+    if (!message) {
+      return;
+    }
     input.value = '';
 
     await this.#performStreamRequest({
@@ -599,7 +596,7 @@ export class AssistantPanel {
       conversationId: this.#currentConversationId,
       includeHistory: true,
       userMessage: message,
-      actionName: '发送消息'
+      actionName: '发送消息',
     });
   }
 
@@ -651,7 +648,7 @@ export class AssistantPanel {
       conversationId: newConversationId,
       includeHistory: false,
       actionName,
-      buttonType: type
+      buttonType: type,
     });
   }
 
@@ -674,10 +671,12 @@ export class AssistantPanel {
     includeHistory,
     userMessage = null,
     actionName,
-    buttonType = null
+    buttonType = null,
   }) {
     // 获取相关按钮（如果有）
-    const button = buttonType ? this.#contentElement.querySelector(`.menu-button.${buttonType}`) : null;
+    const button = buttonType
+      ? this.#contentElement.querySelector(`.menu-button.${buttonType}`)
+      : null;
 
     // 取消之前的请求
     this.#cancelActiveRequest();
@@ -693,32 +692,34 @@ export class AssistantPanel {
       this.#showStopButton();
 
       // 发送流式请求
-      this.#activeRequestId = await this.#chatService.sendStreamMessage({
-        text,
-        type,
-        provider: this.#provider,
-        conversationId,
-        includeHistory
-      }, {
-        onStart: (data) => {
-          console.log(`${CONFIG.LOG_PREFIX} 开始${actionName}:`, data);
+      this.#activeRequestId = await this.#chatService.sendStreamMessage(
+        {
+          text,
+          type,
+          provider: this.#provider,
+          conversationId,
+          includeHistory,
         },
-        onChunk: (data) => {
-          this.#chatComponent.appendStreamChunk(data.text);
-        },
-        onComplete: (data) => {
-          this.#chatComponent.finishStreamMessage();
-          this.#activeRequestId = null;
-          this.#hideStopButton();
-          console.log(`${CONFIG.LOG_PREFIX} ${actionName}完成`);
-        },
-        onError: (error) => {
-          this.#chatComponent.handleStreamError(error.error || `${actionName}失败`);
-          this.#activeRequestId = null;
-          this.#hideStopButton();
+        {
+          onStart: data => {
+            console.log(`${CONFIG.LOG_PREFIX} 开始${actionName}:`, data.requestId);
+          },
+          onChunk: data => {
+            this.#chatComponent.appendStreamChunk(data.text);
+          },
+          onComplete: () => {
+            this.#chatComponent.finishStreamMessage();
+            this.#activeRequestId = null;
+            this.#hideStopButton();
+            console.log(`${CONFIG.LOG_PREFIX} ${actionName}完成`);
+          },
+          onError: error => {
+            this.#chatComponent.handleStreamError(error.error || `${actionName}失败`);
+            this.#activeRequestId = null;
+            this.#hideStopButton();
+          },
         }
-      });
-
+      );
     } catch (error) {
       this.#chatComponent.showError(`${actionName}失败`, error);
       this.#activeRequestId = null;
@@ -759,7 +760,9 @@ export class AssistantPanel {
    */
   async show({ force = true, mode, text = '' } = {}) {
     const showing = await this.#settingsService.loadShowing();
-    if (!force && !showing) return;
+    if (!force && !showing) {
+      return;
+    }
 
     // 更新预览文本
     text = text.trim();
@@ -773,8 +776,9 @@ export class AssistantPanel {
     this.#wrapperElement.classList.add('show');
 
     // 设置模式
-    if (!Object.keys(MODE_HANDLERS).includes(mode))
+    if (!Object.keys(MODE_HANDLERS).includes(mode)) {
       mode = await this.#settingsService.loadMode();
+    }
     this[MODE_HANDLERS[mode]]({ resize: mode === 'inline' && !this.#isShowing });
 
     this.#settingsService.saveShowing(true);
@@ -795,8 +799,9 @@ export class AssistantPanel {
       await this.#settingsService.saveShowing(false);
     }
 
-    if (this.#mode === 'inline')
+    if (this.#mode === 'inline') {
       this.#resetBodyWidth();
+    }
   }
 
   /**
@@ -935,7 +940,11 @@ export class AssistantPanel {
    */
   async #openSettings() {
     console.log(`${CONFIG.LOG_PREFIX} 准备打开面板设置`);
-    await this.#bridge.sendMessage(POPUP_MESSAGES.SYSTEM.OPEN_OPTIONS, {}, { target: 'background' });
+    await this.#bridge.sendMessage(
+      POPUP_MESSAGES.SYSTEM.OPEN_OPTIONS,
+      {},
+      { target: 'background' }
+    );
   }
 
   /**
@@ -943,11 +952,13 @@ export class AssistantPanel {
    * @private
    */
   async #checkOnboarding() {
-    const apiKeys = await this.#settingsService.loadAPIKeys() || {};
+    const apiKeys = (await this.#settingsService.loadAPIKeys()) || {};
     const hasAnyKey = Object.values(apiKeys).some(key => key && key.trim().length > 0);
 
     const banner = this.#contentElement.querySelector('.onboarding-banner');
-    if (!banner) return;
+    if (!banner) {
+      return;
+    }
 
     if (!hasAnyKey) {
       // 允许短暂延迟以配合面板打开动画
@@ -962,8 +973,8 @@ export class AssistantPanel {
    * @private
    */
   async #showStatusMessage() {
-    const apiKeys = await this.#settingsService.loadAPIKeys() || {};
-    const testResults = await this.#settingsService.loadTestResults() || {};
+    const apiKeys = (await this.#settingsService.loadAPIKeys()) || {};
+    const testResults = (await this.#settingsService.loadTestResults()) || {};
 
     const providerName = CONFIG.PROVIDERS[this.#provider] || '未知';
     const isConfigured = !!apiKeys[this.#provider];
@@ -982,6 +993,9 @@ export class AssistantPanel {
       }
     }
 
-    this.#chatComponent.appendMessage(`当前 AI 服务商：**${providerName}** (${statusText})`, `system ${statusClass}`);
+    this.#chatComponent.appendMessage(
+      `当前 AI 服务商：**${providerName}** (${statusText})`,
+      `system ${statusClass}`
+    );
   }
 }

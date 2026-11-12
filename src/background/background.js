@@ -34,7 +34,6 @@ export class MessageRouter {
   setupRoutes() {
     // AI聊天路由 - 非流式
     this.bridge.on(BACKGROUND_MESSAGES.CHAT.REQUEST, async (data, _sender) => {
-      console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 CHAT_REQUEST:`, data);
       try {
         const response = await this.chatService.processRequest(data);
         return {
@@ -51,7 +50,6 @@ export class MessageRouter {
     });
 
     this.bridge.on(BACKGROUND_MESSAGES.CHAT.TEST_API_KEY, async (data, _sender) => {
-      console.log(`${CONFIG.LOG_PREFIX} MessageRouter 收到 TEST_API_KEY:`, data);
       try {
         const response = await this.chatService.processRequest({
           provider: data.provider,
@@ -89,11 +87,6 @@ export class MessageRouter {
         console.log(`${CONFIG.LOG_PREFIX} 建立流式聊天连接`);
 
         port.onMessage.addListener(async data => {
-          const { requestId } = data;
-
-          // 注册端口
-          this.chatService.registerStreamPort(requestId, port);
-
           // 处理流式请求
           await this.chatService.processStreamRequest(data, port);
         });

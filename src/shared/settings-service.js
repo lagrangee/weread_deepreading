@@ -195,7 +195,7 @@ export class SettingsService {
   async #loadSettings(key) {
     const storageKey = SettingsService.#STORAGE_KEY_PREFIX + key;
     const result = await chrome.storage.sync.get(storageKey);
-    return result[storageKey] || SettingsService.#DEFAULT_SETTINGS[key];
+    return result[storageKey] ?? SettingsService.#DEFAULT_SETTINGS[key];
   }
 
   /**

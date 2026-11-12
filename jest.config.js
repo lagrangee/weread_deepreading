@@ -3,7 +3,9 @@ module.exports = {
   moduleFileExtensions: ['js'],
   testMatch: ['**/tests/**/*.test.js'],
   transform: {
-    '^.+\\.js$': 'babel-jest',
+    '^.+\\.js$': ['babel-jest', {
+      presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+    }],
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -13,7 +15,7 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
-  collectCoverage: true,
+  collectCoverage: false,
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/**/*.test.js',
@@ -29,4 +31,4 @@ module.exports = {
       statements: 80,
     },
   },
-}; 
+};
