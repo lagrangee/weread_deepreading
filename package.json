@@ -16,7 +16,8 @@
     "package": "npm run build && node scripts/package.js",
     "pre-publish": "node scripts/pre-publish-check.js",
     "publish-ready": "npm run pre-publish && echo '\n🎯 准备发布到Chrome Web Store!'",
-    "qr": "node scripts/generate-app-store-qr.js"
+    "qr": "node scripts/generate-app-store-qr.js",
+    "check:permissions": "node scripts/verify-permissions.js"
   },
   "repository": {
     "type": "git",

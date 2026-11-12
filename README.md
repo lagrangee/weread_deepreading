@@ -18,7 +18,14 @@
 
 深读需自备 AI API Key，模型服务可能另行计费。讨论保存在手机，暂不与本插件同步。它是同一作者制作的独立 App，与微信读书没有官方隶属或合作关系。
 
-## 最近更新 v1.2.0 (2026-11-12)
+## 最近更新 v1.2.0 审核修复 (2026-11-12)
+
+- 移除未使用的 `activeTab` 权限；阅读页仍通过声明式内容脚本运行。
+- AI 域名授权收窄到实际接口域名，移除仅供浏览器打开外部链接的域名授权。
+- 权限检查按实际 API 端点验证最小授权，并纳入发布前检查。
+- 保留 Chrome 账号同步和深读 App 下载入口。
+
+## v1.2.0 更新 (2026-11-12)
 
 - 在阅读面板增加可隐藏的深读下载入口，二维码与链接均直达 App Store；设置页「关于」始终可找到。
 - 中文输入法确认候选词时不再误发送；Shift+Enter 换行，浏览器组合键与其他输入区域正常工作。
@@ -294,11 +301,16 @@ const response = await chatService.sendMessage({
 ```json
 {
   "permissions": [
-    "storage",           // 存储用户设置
-    "activeTab"          // 访问当前标签页
+    "storage"            // 保存、同步配置与本机偏好
   ],
   "host_permissions": [
-    "https://weread.qq.com/*"  // 微信读书域名
+    "https://qianfan.baidubce.com/*",
+    "https://dashscope.aliyuncs.com/*",
+    "https://ark.cn-beijing.volces.com/*",
+    "https://api.moonshot.cn/*",
+    "https://api.minimaxi.com/*",
+    "https://open.bigmodel.cn/*",
+    "https://weread.qq.com/*"
   ]
 }
 ```

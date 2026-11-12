@@ -10,7 +10,13 @@
 - 官网/源码：https://github.com/lagrangee/weread_deepreading
 - 数据说明：https://github.com/lagrangee/weread_deepreading/blob/main/PRIVACY.md
 - 详细描述：使用本目录 [description.md](description.md) 的中文版本。
-- 上传包：`weread-deepreading-v1.2.0.zip`
+- 上传包：`weread-deepreading-v1.2.0.zip`（本轮权限修复包，SHA-256：`382dfe5505799c059a2c54d96f3a17c8b8d9a562b18af5e33ec9d396786792b1`）
+- 本轮结果：同版本替换已接受，已重新送审；自动发布关闭，审核通过后待手动发布。
+
+## 本次审核修复
+
+针对 Purple Potassium：移除未使用的 activeTab，收窄 AI 域名，移除仅用于外部链接的域名授权。
+用户已经修正关键词描述并提交；本轮保留后台现有描述，不重新填写旧版本文案。上传新包后须读回确认描述未被覆盖。
 
 ## 新版说明
 
