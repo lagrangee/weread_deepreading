@@ -7,16 +7,14 @@
   "homepage_url": "https://github.com/lagrangee/weread_deepreading",
   "minimum_chrome_version": "88",
   "permissions": [
-    "storage",
-    "activeTab"
+    "storage"
   ],
   "host_permissions": [
-    "https://*.baidubce.com/*",
+    "https://qianfan.baidubce.com/*",
     "https://dashscope.aliyuncs.com/*",
-    "https://*.volces.com/*",
+    "https://ark.cn-beijing.volces.com/*",
     "https://api.moonshot.cn/*",
     "https://api.minimaxi.com/*",
-    "https://open.bigmodel.ai/*",
     "https://open.bigmodel.cn/*",
     "https://weread.qq.com/*"
   ],

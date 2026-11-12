@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 const packageJson = require('../package.json');
 
 /**
@@ -299,6 +300,9 @@ function main() {
   console.log(`🚀 微信读书深度阅读助手 v${packageJson.version} 发布前检查\n`);
 
   const checks = [
+    () => spawnSync(process.execPath, [path.join(__dirname, 'verify-permissions.js')], {
+      stdio: 'inherit'
+    }).status === 0,
     checkProjectStructure,
     checkIcons,
     checkManifest,
