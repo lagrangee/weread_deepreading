@@ -11,16 +11,16 @@ export class ChatService {
   constructor(bookName = '', authorName = '') {
     /** @type {string} 书名 */
     this.#bookName = bookName;
-    
+
     /** @type {string} 作者名 */
     this.#authorName = authorName;
-    
+
     /** @type {Object} 通信桥接实例 */
     this.#bridge = window.contentBridge;
-    
+
     /** @type {Map<string, Array>} 对话历史记录 */
     this.#conversations = new Map();
-    
+
     /** @type {boolean} 服务是否可用 */
     this.#isAvailable = true;
 
@@ -28,9 +28,7 @@ export class ChatService {
     this.#activeStreams = new Map();
 
     console.log(`${CONFIG.LOG_PREFIX} ChatService 初始化`, {
-      bookName: this.#bookName,
-      authorName: this.#authorName,
-      bridgeAvailable: !!this.#bridge
+      bridgeAvailable: !!this.#bridge,
     });
   }
 
@@ -54,14 +52,14 @@ export class ChatService {
       type = 'chat',
       provider,
       conversationId = 'default',
-      includeHistory = true
+      includeHistory = true,
     } = options;
 
     const {
-      onStart = () => {},      // 开始回调
-      onChunk = () => {},      // 数据块回调
-      onComplete = () => {},   // 完成回调
-      onError = () => {}       // 错误回调
+      onStart = () => {}, // 开始回调
+      onChunk = () => {}, // 数据块回调
+      onComplete = () => {}, // 完成回调
+      onError = () => {}, // 错误回调
     } = callbacks;
 
     // 生成唯一的请求ID
@@ -70,64 +68,109 @@ export class ChatService {
     try {
       // 建立Port连接
       const port = chrome.runtime.connect({ name: BACKGROUND_MESSAGES.CHAT.REQUEST_STREAM });
-      
-      let accumulatedContent = '';
+
+      const stream = {
+        port,
+        conversationId,
+        accumulatedContent: '',
+        started: false,
+        settled: false,
+      };
+
+      const settle = (status, data = {}, disconnect = true) => {
+        if (stream.settled) {
+          return;
+        }
+        stream.settled = true;
+        this.#activeStreams.delete(requestId);
+
+        // 停止或网络中断时，已收到的内容仍可用于下一次追问。
+        if (stream.started && stream.accumulatedContent) {
+          this.addToConversation(conversationId, {
+            role: 'ai',
+            content: stream.accumulatedContent,
+            interrupted: status !== 'complete',
+            timestamp: Date.now(),
+          });
+        }
+
+        try {
+          if (status === 'complete') {
+            onComplete(data);
+          }
+          if (status === 'error') {
+            onError({ ...data, partialText: stream.accumulatedContent });
+          }
+        } finally {
+          if (disconnect) {
+            port.disconnect();
+          }
+        }
+      };
+      stream.cancel = () => settle('cancel');
+      stream.fail = error =>
+        settle('error', {
+          requestId,
+          type: 'error',
+          error: error.message,
+          timestamp: Date.now(),
+        });
+      this.#activeStreams.set(requestId, stream);
 
       // 监听Port消息
-      port.onMessage.addListener((data) => {
-        if (data.requestId !== requestId) return;
+      port.onMessage.addListener(data => {
+        if (data.requestId !== requestId || stream.settled) {
+          return;
+        }
 
         switch (data.type) {
           case 'start':
-            onStart(data);
+            if (stream.started) {
+              return;
+            }
+            stream.started = true;
             // 保存用户消息到历史
             this.addToConversation(conversationId, {
               role: 'user',
               content: text,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
+            onStart(data);
             break;
 
           case 'chunk':
             if (data.text) {
-              accumulatedContent += data.text;
+              stream.accumulatedContent += data.text;
               onChunk(data);
             }
             break;
 
           case 'complete':
-            // 保存完整的AI响应到历史
-            this.addToConversation(conversationId, {
-              role: 'ai',
-              content: accumulatedContent,
-              timestamp: Date.now()
-            });
-            onComplete(data);
-            this.#activeStreams.delete(requestId);
-            port.disconnect();
+            settle('complete', data);
             break;
 
           case 'error':
-            console.error(`${CONFIG.LOG_PREFIX} 流式请求错误:`, data);
-            onError(data);
-            this.#activeStreams.delete(requestId);
-            port.disconnect();
+            settle('error', data);
             break;
         }
       });
 
       // 监听连接断开
       port.onDisconnect.addListener(() => {
-        this.#activeStreams.delete(requestId);
-        console.log(`${CONFIG.LOG_PREFIX} 流式连接断开:`, requestId);
-      });
-
-      // 保存流信息
-      this.#activeStreams.set(requestId, {
-        port,
-        conversationId,
-        userText: text,
-        accumulatedContent
+        // 读取 lastError，避免 Chrome 报告未处理的端口断开错误。
+        const connectionError = chrome.runtime.lastError;
+        if (!stream.settled) {
+          settle(
+            'error',
+            {
+              requestId,
+              type: 'error',
+              error: connectionError ? '与扩展后台的连接已中断，请重试' : '连接意外中断，请重试',
+              timestamp: Date.now(),
+            },
+            false
+          );
+        }
       });
 
       // 构建聊天数据并发送
@@ -140,32 +183,28 @@ export class ChatService {
         author: this.#authorName,
         conversationId,
         context: includeHistory ? this.getConversationHistory(conversationId) : [],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
-      console.log(`${CONFIG.LOG_PREFIX} 发送AI流式请求:`, { 
+      console.log(`${CONFIG.LOG_PREFIX} 发送AI流式请求:`, {
         requestId,
-        action: type, 
-        provider, 
+        action: type,
+        provider,
         textLength: text.length,
-        book: this.#bookName,
-        author: this.#authorName
       });
 
       // 通过Port发送请求
       port.postMessage(chatData);
 
       return requestId;
-
     } catch (error) {
       console.error(`${CONFIG.LOG_PREFIX} AI流式聊天请求失败:`, error);
-      this.#activeStreams.delete(requestId);
-      onError({
-        requestId,
-        error: error.message,
-        timestamp: Date.now(),
-        type: 'error'
-      });
+      const stream = this.#activeStreams.get(requestId);
+      if (stream) {
+        stream.fail(error);
+      } else {
+        onError({ requestId, error: error.message, timestamp: Date.now(), type: 'error' });
+      }
       throw error;
     }
   }
@@ -177,8 +216,7 @@ export class ChatService {
   cancelStreamRequest(requestId) {
     const stream = this.#activeStreams.get(requestId);
     if (stream) {
-      stream.port.disconnect();
-      this.#activeStreams.delete(requestId);
+      stream.cancel();
       console.log(`${CONFIG.LOG_PREFIX} 取消流式请求:`, requestId);
     }
   }
@@ -202,7 +240,7 @@ export class ChatService {
       type = 'chat',
       provider,
       conversationId = 'default',
-      includeHistory = true
+      includeHistory = true,
     } = options;
 
     // 检查服务可用性
@@ -215,20 +253,18 @@ export class ChatService {
       const chatData = {
         provider,
         text,
-        action: type,  // background 期望的是 action，不是 type
+        action: type, // background 期望的是 action，不是 type
         book: this.#bookName,
         author: this.#authorName,
         conversationId,
         context: includeHistory ? this.getConversationHistory(conversationId) : [],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
-      console.log(`${CONFIG.LOG_PREFIX} 发送AI请求:`, { 
-        action: type, 
-        provider, 
+      console.log(`${CONFIG.LOG_PREFIX} 发送AI请求:`, {
+        action: type,
+        provider,
         textLength: text.length,
-        book: this.#bookName,
-        author: this.#authorName
       });
 
       // 发送到background - 这里可能会抛出错误
@@ -238,13 +274,13 @@ export class ChatService {
         this.addToConversation(conversationId, {
           role: 'user',
           content: response.data.userPrompt,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         this.addToConversation(conversationId, {
           role: 'ai',
           content: response.data.content || response.data.text,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         return {
@@ -252,12 +288,11 @@ export class ChatService {
           userPrompt: response.data.userPrompt,
           content: response.data.content || response.data.text,
           provider: response.data.provider,
-          conversationId
+          conversationId,
         };
       } else {
         throw new Error(response.error || 'AI服务返回错误响应');
       }
-
     } catch (error) {
       console.error(`${CONFIG.LOG_PREFIX} AI聊天请求失败:`, error);
       throw error;
@@ -282,10 +317,10 @@ export class ChatService {
     if (!this.#conversations.has(conversationId)) {
       this.#conversations.set(conversationId, []);
     }
-    
+
     const history = this.#conversations.get(conversationId);
     history.push(message);
-    
+
     // 限制历史记录长度（保持最近20条）
     if (history.length > 20) {
       history.splice(0, history.length - 20);
@@ -327,7 +362,7 @@ export class ChatService {
       hasBridge: !!this.#bridge,
       conversationCount: this.#conversations.size,
       activeStreams: this.#activeStreams.size,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -336,17 +371,17 @@ export class ChatService {
    */
   destroy() {
     this.#isAvailable = false;
-    this.#conversations.clear();
-    
+
     // 断开所有活跃的流式连接
-    for (const [requestId, stream] of this.#activeStreams) {
-      stream.port.disconnect();
+    for (const requestId of this.#activeStreams.keys()) {
+      this.cancelStreamRequest(requestId);
     }
     this.#activeStreams.clear();
-    
+    this.#conversations.clear();
+
     // 移除事件监听
     EventUtils.off('chat:response');
-    
+
     console.log(`${CONFIG.LOG_PREFIX} ChatService 已销毁`);
   }
 }

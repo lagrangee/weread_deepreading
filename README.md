@@ -1,21 +1,31 @@
 # 微信读书深度阅读助手 (WeRead Deep Reading Assistant)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-1.1.4-green.svg)](https://github.com/lagrangee/weread_deepreading)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chromewebstore.google.com/detail/fpfnheijilacdeckokegbnkafecnmkia)
+[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)](https://github.com/lagrangee/weread_deepreading)
 
 ## 📖 项目介绍
 
 微信读书深度阅读助手是一个Chrome浏览器扩展，通过集成多个AI大模型，为微信读书用户提供智能阅读辅助功能。支持文本解释、内容消化、多角度分析等功能，让阅读更加深入和高效。
 
-## 最近更新 v1.1.4 (2026-01-18)
-- ✨ 新增设置页面全新 UI，支持多标签切换（模型配置/快捷键说明/关于项目）
-- ✨ 新增 Kimi、MiniMax、智谱 三个 AI 服务商支持
-- ✨ 助手面板支持快捷切换服务商（点击服务商按钮显示菜单）
-- ✨ 新增服务商状态指示灯（绿色=正常/红色=失败/灰色=未配置）
-- ✨ 新增首次使用引导提示
-- 🔧 ESLint 配置升级至 ES2022，支持私有字段语法
-- 🐛 修复多处代码规范问题
+## 手机上也能这样读书：深读 iPhone App
+
+我也做了「深读」，为在手机上阅读微信读书的人提供相同的解释、消化、兼听与持续追问体验。复制选段到深读，围绕原文提问，并按书保存讨论，再回原书继续阅读。
+
+**[在 App Store 下载深读](https://apps.apple.com/app/id6827442865)** · iPhone / iOS 17 及以上
+
+[![用 iPhone 相机扫码下载深读](assets/promotion/deepreading-app-store.png)](https://apps.apple.com/app/id6827442865)
+
+深读需自备 AI API Key，模型服务可能另行计费。讨论保存在手机，暂不与本插件同步。它是同一作者制作的独立 App，与微信读书没有官方隶属或合作关系。
+
+## 最近更新 v1.2.0 (2026-11-12)
+
+- 在阅读面板增加可隐藏的深读下载入口，二维码与链接均直达 App Store；设置页「关于」始终可找到。
+- 中文输入法确认候选词时不再误发送；Shift+Enter 换行，浏览器组合键与其他输入区域正常工作。
+- 修复 SSE 分片、尾帧与服务端错误处理；连接中断后恢复操作，并保留已收到的回答。
+- 清洗 AI 回答中的 HTML 和危险链接，禁止回答自动加载远程图片，保留 Markdown 排版。
+- 修复面板关闭状态未保存的问题，清理密钥与阅读内容日志。
+- **保留 API Key 随 Chrome 账号同步**，修正存储与隐私说明；增加可运行的回归测试。
 
 ## ✨ 核心功能
 
@@ -44,7 +54,7 @@
 - **智能面板系统**：浮动/内嵌模式切换，支持拖拽和调整大小
 - **会话式交互**：支持连续对话，保持上下文
 - **Markdown渲染**：富文本显示，支持代码高亮
-- **本地存储**：API Key安全存储，设置自动同步
+- **Chrome 同步**：API Key、模型配置与界面偏好通过 Chrome 账号同步
 - **快捷键支持**：全局快捷键，提升使用效率
 
 ## 🏗️ 项目架构
@@ -108,8 +118,8 @@ graph TB
 ### 📋 环境要求
 
 - **Chrome浏览器** >= 88
-- **Node.js** >= 14.0.0
-- **npm** >= 6.0.0
+- **Node.js** >= 18.18.0
+- **npm**：使用当前 Node.js 配套版本
 
 ### 🛠️ 安装步骤
 
@@ -121,7 +131,7 @@ cd weread_deepreading
 
 2. **安装依赖**
 ```bash
-npm install
+npm ci
 ```
 
 3. **开发模式构建**
@@ -145,7 +155,7 @@ npm run build
 ### ⚙️ 配置API Key
 
 1. 点击扩展图标打开设置面板
-2. 选择AI服务商（文心一言/通义千问/豆包/DeepSeek）
+2. 选择 AI 服务商（千问、豆包、Kimi、MiniMax、智谱、文心一言）
 3. 输入对应的API Key
 4. 点击"测试"验证连接
 5. 保存设置
@@ -275,8 +285,8 @@ const response = await chatService.sendMessage({
 
 ### 🛡️ 数据安全
 
-- **API Key加密存储**：使用Chrome Storage API安全存储
-- **本地数据处理**：用户数据不上传到服务器
+- **API Key 与设置同步**：保存到 `chrome.storage.sync`，可随 Chrome 账号同步；扩展未自行实现密钥加密
+- **AI 请求**：选文、书名、作者与当前对话会发送给所选 AI 服务商；不经过开发者服务器
 - **权限最小化**：只请求必要的Chrome权限
 
 ### 📋 权限说明
@@ -375,7 +385,7 @@ chore: 构建过程或辅助工具的变动
 - [ ] 用户自定义提示词
 - [ ] 阅读笔记管理
 - [ ] 多语言支持
-- [ ] 移动端适配
+- [x] 独立 iPhone App「深读」，[App Store 下载](https://apps.apple.com/app/id6827442865)
 
 ## 📄 许可证
 
@@ -391,6 +401,7 @@ chore: 构建过程或辅助工具的变动
 
 感谢以下开源项目：
 - [marked](https://github.com/markedjs/marked) - Markdown解析器
+- [DOMPurify](https://github.com/cure53/DOMPurify) - HTML 安全清洗
 - [webpack](https://webpack.js.org/) - 模块打包工具
 - [babel](https://babeljs.io/) - JavaScript编译器
 

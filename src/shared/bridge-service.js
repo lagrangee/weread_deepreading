@@ -76,7 +76,7 @@ export class BridgeService {
         if (tabId) {
           // 发送到指定tab的content script
           chrome.tabs.sendMessage(tabId, message, (response = {}) => {
-            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应:`, response);
+            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应`);
             this.pendingRequests.delete(messageId);
             clearTimeout(timeoutId);
             resolve(response);
@@ -84,7 +84,7 @@ export class BridgeService {
         } else {
           // 发送到runtime (background或popup)
           chrome.runtime.sendMessage(message, (response = {}) => {
-            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应:`, response);
+            console.log(`${CONFIG.LOG_PREFIX} ${this.source} to ${target} 收到响应`);
             this.pendingRequests.delete(messageId);
             clearTimeout(timeoutId);
             resolve(response);

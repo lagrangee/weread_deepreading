@@ -45,3 +45,6 @@ temp/
 Thumbs.db 
 .eslintrc.js
 .eslintignore
+
+# Local validation artifacts
+artifacts/

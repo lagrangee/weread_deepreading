@@ -7,6 +7,7 @@ import { BridgeService } from '../shared/bridge-service.js';
 import { SettingsService } from '../shared/settings-service.js';
 import { BACKGROUND_MESSAGES, POPUP_MESSAGES, MESSAGE_STATUS } from '../shared/message-types.js';
 import { CONFIG } from '../shared/config.js';
+import { initAppPromotion } from '../shared/app-promotion.js';
 
 class PopupManager {
   #settingsService = null;
@@ -36,6 +37,7 @@ class PopupManager {
       await this.#loadConfig();
       this.#displaySavedInfos();
       this.#initTabs();
+      await initAppPromotion(document);
       this.bindEvents();
       this.#checkOnboarding();
       await this.#updateStatusIndicators();

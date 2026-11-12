@@ -4,6 +4,7 @@
  */
 
 import { CONFIG } from '../../shared/config.js';
+import { SettingsService } from '../../shared/settings-service.js';
 
 export class ChatService {
   /** @type {Map<string, AbortController>} 存储正在进行的请求，以便取消 */
@@ -18,11 +19,27 @@ export class ChatService {
    * 处理聊天请求（非流式）
    */
   async processRequest(data) {
-    const { provider, text, action = 'chat', book, author, isTest = false, apiKey, context, model, temperature, requestId } = data;
+    const {
+      provider,
+      text,
+      action = 'chat',
+      book,
+      author,
+      isTest = false,
+      apiKey,
+      context,
+      model,
+      temperature,
+      requestId,
+    } = data;
 
     try {
-      if (!provider) throw new Error('provider is required');
-      if (isTest) return await this.testApiConnection(provider, apiKey, model, temperature);
+      if (!provider) {
+        throw new Error('provider is required');
+      }
+      if (isTest) {
+        return await this.testApiConnection(provider, apiKey, model, temperature);
+      }
 
       const config = await this.#getEffectiveConfig(provider, { apiKey, model, temperature });
       const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context);
@@ -35,7 +52,7 @@ export class ChatService {
         userPrompt,
         model: config.model,
         temperature: config.temperature,
-        requestId
+        requestId,
       });
 
       return {
@@ -43,7 +60,7 @@ export class ChatService {
         text: response,
         provider,
         action,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -59,22 +76,58 @@ export class ChatService {
    * 处理流式聊天请求
    */
   async processStreamRequest(data, port) {
-    const { provider, text, action = 'chat', book, author, apiKey, context, requestId, model, temperature } = data;
+    const {
+      provider,
+      text,
+      action = 'chat',
+      book,
+      author,
+      apiKey,
+      context,
+      requestId,
+      model,
+      temperature,
+    } = data;
+    this.registerStreamPort(requestId, port);
+
+    // 页面关闭或主动停止后，不再向失效端口写入，也不发起后续模型请求。
+    const postMessage = message => {
+      if (this.streamPorts.get(requestId) !== port) {
+        return false;
+      }
+      try {
+        port.postMessage(message);
+        return true;
+      } catch {
+        this.cancelRequest(requestId);
+        this.streamPorts.delete(requestId);
+        return false;
+      }
+    };
 
     try {
-      if (!provider) throw new Error('provider is required');
+      if (!provider) {
+        throw new Error('provider is required');
+      }
 
       const config = await this.#getEffectiveConfig(provider, { apiKey, model, temperature });
+      if (this.streamPorts.get(requestId) !== port) {
+        return;
+      }
       const { systemPrompt, userPrompt } = this.#buildPrompts(action, text, book, author, context);
 
-      port.postMessage({
-        type: 'start',
-        requestId,
-        userPrompt,
-        provider,
-        action,
-        timestamp: Date.now()
-      });
+      if (
+        !postMessage({
+          type: 'start',
+          requestId,
+          userPrompt,
+          provider,
+          action,
+          timestamp: Date.now(),
+        })
+      ) {
+        return;
+      }
 
       await this.#makeRequest({
         provider,
@@ -86,44 +139,63 @@ export class ChatService {
         temperature: config.temperature,
         requestId,
         stream: true,
-        onChunk: (chunk) => {
-          port.postMessage({
+        onChunk: chunk => {
+          postMessage({
             type: 'chunk',
             requestId,
             text: chunk,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
-        }
+        },
       });
 
-      port.postMessage({ type: 'complete', requestId, timestamp: Date.now() });
-
+      postMessage({ type: 'complete', requestId, timestamp: Date.now() });
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log(`${CONFIG.LOG_PREFIX} 流式请求已取消: ${requestId}`);
         return;
       }
       console.error(`${CONFIG.LOG_PREFIX} AI 流式请求失败:`, error);
-      port.postMessage({
+      postMessage({
         type: 'error',
         requestId,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
+    } finally {
+      if (this.streamPorts.get(requestId) === port) {
+        this.streamPorts.delete(requestId);
+      }
     }
   }
 
   /**
    * 统一请求层 (支持流式和非流式)
    */
-  async #makeRequest({ provider, apiKey, systemPrompt, userPrompt, model, temperature, requestId, stream = false, onChunk }) {
+  async #makeRequest({
+    provider,
+    apiKey,
+    systemPrompt,
+    userPrompt,
+    model,
+    temperature,
+    requestId,
+    stream = false,
+    onChunk,
+  }) {
     const apiConfig = CONFIG.API_ENDPOINTS[provider];
-    if (!apiConfig) throw new Error(`未知的提供商: ${provider}`);
+    if (!apiConfig) {
+      throw new Error(`未知的提供商: ${provider}`);
+    }
 
     // 管理 AbortController
-    if (requestId) this.cancelRequest(requestId);
+    if (requestId) {
+      this.cancelRequest(requestId);
+    }
     const controller = new AbortController();
-    if (requestId) this.#abortControllers.set(requestId, controller);
+    if (requestId) {
+      this.#abortControllers.set(requestId, controller);
+    }
 
     // 模型兜底逻辑
     const finalModel = model || apiConfig.model;
@@ -132,20 +204,22 @@ export class ChatService {
       model: finalModel,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
-      stream
+      stream,
     };
-    if (temperature !== undefined) requestBody.temperature = temperature;
+    if (temperature !== undefined) {
+      requestBody.temperature = temperature;
+    }
 
     // 清洗参数，确保没有不可见字符
-    const sanitize = (val) => (val || '').trim().replace(/[^\x00-\x7F]/g, '');
+    const sanitize = val => (val || '').trim().replace(/[^\x20-\x7E]/g, '');
     const sanitizedApiKey = sanitize(apiKey);
 
     // 构造请求头
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${sanitizedApiKey}`
+      Authorization: `Bearer ${sanitizedApiKey}`,
     };
 
     // 动态设置 Accept 头部。智谱等服务商在非流式模式下对 Accept: text/event-stream 极为敏感
@@ -165,12 +239,14 @@ export class ChatService {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(requestBody),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || errorData.message || `API Error: ${response.status}`);
+        throw new Error(
+          errorData.error?.message || errorData.message || `API Error: ${response.status}`
+        );
       }
 
       if (stream) {
@@ -178,10 +254,16 @@ export class ChatService {
         return null;
       } else {
         const data = await response.json();
-        return this.#extractContent(data, provider);
+        const content = this.#extractContent(data, provider);
+        if (!content) {
+          throw new Error(data.error?.message || 'AI 服务未返回可显示的回答，请检查模型配置后重试');
+        }
+        return content;
       }
     } finally {
-      if (requestId) this.#abortControllers.delete(requestId);
+      if (this.#abortControllers.get(requestId) === controller) {
+        this.#abortControllers.delete(requestId);
+      }
     }
   }
 
@@ -189,37 +271,110 @@ export class ChatService {
    * 鲁棒的 SSE 解析引擎
    */
   async #parseSSEResponse(response, provider, onChunk, signal) {
+    if (!response.body) {
+      throw new Error('AI 服务未返回可读取的回答');
+    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let partialLine = '';
+    let eventData = [];
+    let eventType = '';
+    let finished = false;
+    let receivedContent = false;
+
+    const dispatchEvent = () => {
+      if (eventData.length === 0) {
+        eventType = '';
+        return;
+      }
+      const dataStr = eventData.join('\n');
+      eventData = [];
+      if (dataStr.trim() === '[DONE]') {
+        finished = true;
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(dataStr);
+      } catch {
+        throw new Error('AI 服务返回的数据格式有误，请重试');
+      }
+
+      if (eventType === 'error' || data.error) {
+        throw new Error(data.error?.message || data.message || 'AI 服务返回错误，请检查配置后重试');
+      }
+      eventType = '';
+      const content = this.#extractContent(data, provider, true);
+      if (content) {
+        receivedContent = true;
+        onChunk(content);
+      }
+    };
+
+    const parseLine = line => {
+      // CRLF 的 CR 可能与 LF 分处不同网络分块。
+      if (line.endsWith('\r')) {
+        line = line.slice(0, -1);
+      }
+      if (line === '') {
+        dispatchEvent();
+        return;
+      }
+      if (line.startsWith(':')) {
+        return;
+      } // SSE 心跳注释
+      const colon = line.indexOf(':');
+      const field = colon === -1 ? line : line.slice(0, colon);
+      let value = colon === -1 ? '' : line.slice(colon + 1);
+      if (value.startsWith(' ')) {
+        value = value.slice(1);
+      }
+      if (field === 'data') {
+        eventData.push(value);
+      }
+      if (field === 'event') {
+        eventType = value;
+      }
+    };
 
     try {
-      while (true) {
+      while (!finished) {
+        if (signal.aborted) {
+          throw new DOMException('请求已取消', 'AbortError');
+        }
         const { done, value } = await reader.read();
-        if (done) break;
-        if (signal.aborted) throw new AbortError();
+        if (signal.aborted) {
+          throw new DOMException('请求已取消', 'AbortError');
+        }
+        if (done) {
+          partialLine += decoder.decode();
+          if (partialLine) {
+            parseLine(partialLine);
+          }
+          if (!finished) {
+            dispatchEvent();
+          }
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = (partialLine + chunk).split('\n');
         partialLine = lines.pop() || '';
 
         for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
-
-          const dataStr = trimmedLine.slice(6);
-          if (dataStr === '[DONE]') break;
-
-          try {
-            const json = JSON.parse(dataStr);
-            const content = this.#extractContent(json, provider, true);
-            if (content) onChunk(content);
-          } catch (e) {
-            console.warn(`${CONFIG.LOG_PREFIX} 解析 SSE 数据失败:`, e, dataStr);
+          parseLine(line);
+          if (finished) {
+            break;
           }
         }
       }
+      if (!receivedContent) {
+        throw new Error('AI 服务未返回可显示的回答，请检查模型配置后重试');
+      }
     } finally {
+      // DONE 标记后即停止读取，避免服务保持连接时一直占用请求。
+      await reader.cancel().catch(() => {});
       reader.releaseLock();
     }
   }
@@ -241,13 +396,14 @@ export class ChatService {
   async #getEffectiveConfig(provider, overrides) {
     const saved = await this.getCustomConfigs(provider);
 
-    // 基础清洗：去除首尾空格及所有非 ASCII 字符（防止不可见干扰字符）
-    const sanitize = (val) => typeof val === 'string' ? val.trim().replace(/[^\x00-\x7F]/g, '') : val;
+    // 基础清洗：只保留可打印 ASCII 字符，去除首尾空格和不可见干扰字符。
+    const sanitize = val =>
+      typeof val === 'string' ? val.trim().replace(/[^\x20-\x7E]/g, '') : val;
 
     return {
       apiKey: sanitize(overrides.apiKey || saved.apiKey),
       model: sanitize(overrides.model || saved.model),
-      temperature: overrides.temperature !== undefined ? overrides.temperature : saved.temperature
+      temperature: overrides.temperature !== undefined ? overrides.temperature : saved.temperature,
     };
   }
 
@@ -282,7 +438,9 @@ export class ChatService {
   }
 
   #buildContext(context) {
-    return context.map(item => `${item.role == "user" ? "我问" : "AI回答"}: ${item.content}`).join('\n');
+    return context
+      .map(item => `${item.role === 'user' ? '我问' : 'AI回答'}: ${item.content}`)
+      .join('\n');
   }
 
   /**
@@ -299,7 +457,7 @@ export class ChatService {
       userPrompt: '请回复"OK"',
       model: config.model,
       temperature: config.temperature,
-      requestId: 'test-connection'
+      requestId: 'test-connection',
     });
 
     let message = '连接成功';
@@ -313,11 +471,17 @@ export class ChatService {
 
   async getCustomConfigs(provider) {
     try {
-      const result = await chrome.storage.sync.get(['apiKeys', 'models', 'temperatures']);
+      const settings = new SettingsService();
+      const [apiKeys, models, temperatures] = await Promise.all([
+        settings.loadAPIKeys(),
+        settings.loadModels(),
+        settings.loadTemperatures(),
+      ]);
       return {
-        apiKey: result.apiKeys?.[provider] || null,
-        model: result.models?.[provider] || null,
-        temperature: result.temperatures?.[provider] !== undefined ? Number(result.temperatures[provider]) : undefined
+        apiKey: apiKeys?.[provider] || null,
+        model: models?.[provider] || null,
+        temperature:
+          temperatures?.[provider] !== undefined ? Number(temperatures[provider]) : undefined,
       };
     } catch {
       return { apiKey: null, model: null, temperature: undefined };
@@ -325,10 +489,15 @@ export class ChatService {
   }
 
   registerStreamPort(requestId, port) {
+    if (this.streamPorts.get(requestId) === port) {
+      return;
+    }
     this.streamPorts.set(requestId, port);
     port.onDisconnect.addListener(() => {
-      this.cancelRequest(requestId);
-      this.streamPorts.delete(requestId);
+      if (this.streamPorts.get(requestId) === port) {
+        this.cancelRequest(requestId);
+        this.streamPorts.delete(requestId);
+      }
     });
   }
 }

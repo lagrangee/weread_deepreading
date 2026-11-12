@@ -55,9 +55,9 @@ async function parsePageInfo() {
   if (parts.length >= 3) {
     bookName = parts[0];
     authorName = parts.length === 3 ? parts[1] : parts[2];
-    console.log(`${CONFIG.LOG_PREFIX} 页面信息 - 书名: ${bookName}, 作者: ${authorName}`);
+    console.log(`${CONFIG.LOG_PREFIX} 页面书籍信息已读取`);
   } else {
-    console.warn(`${CONFIG.LOG_PREFIX} 无法解析页面标题: ${pageTitle}`);
+    console.warn(`${CONFIG.LOG_PREFIX} 无法从页面标题解析书籍信息`);
     bookName = '未知书籍';
     authorName = '未知作者';
   }

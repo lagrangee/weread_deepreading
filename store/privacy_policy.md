@@ -1,95 +1,36 @@
-# 隐私政策 / Privacy Policy
+# 微信读书深度阅读助手：数据与隐私说明
 
-## 中文版
+最后更新：2026-11-12（v1.2.0）
 
-### 微信读书助手隐私政策
+## 阅读内容与 AI 服务
 
-最后更新日期：2024年3月
+扩展在微信读书网页读取书名、作者和你主动复制的选段。点击解释、消化、兼听或发送追问后，选段、关联书籍信息、提问与当前会话内容会从浏览器直接发送给你配置的 AI 服务商。API Key 用于向该服务鉴权。连接测试也会向所选服务发送测试请求，服务方可能另行计费。
 
-感谢您使用微信读书助手。本隐私政策旨在说明我们如何收集、使用和保护您的个人信息。
+当前支持千问、豆包、Kimi、MiniMax、智谱及文心一言。各服务商按照自己的条款处理收到的请求。扩展开发者不运营中转服务器，不接收这些请求或密钥，不采集阅读内容、使用统计或设备标识用于分析。
 
-#### 1. 信息收集
-我们收集的信息仅限于：
-- 您在微信读书网页上选择的文本内容
-- 您的AI服务提供商配置信息（如API密钥）
-- 您的偏好设置（如界面主题、快捷键设置等）
+## API Key 与设置的 Chrome 同步
 
-#### 2. 信息使用
-我们收集的信息仅用于：
-- 提供文本解释、内容消化等核心功能
-- 保存您的个性化设置
-- 改进扩展功能和用户体验
+API Key、服务商选择、模型名称、温度、测试状态及界面偏好保存在 `chrome.storage.sync`。Chrome 会按你的浏览器账号与同步设置，在浏览器之间同步这些配置。此功能在本版继续保留，旧版配置不迁移、不删除。
 
-#### 3. 信息存储
-- 所有数据均存储在您的本地浏览器中
-- API密钥等敏感信息使用浏览器的安全存储机制
-- 我们不会将任何数据上传至我们的服务器
+`chrome.storage.sync` 不是扩展自行实现的加密保险箱；本扩展未对 API Key 额外加密。请保护浏览器账号和设备。你可以在扩展设置中修改或删除密钥，在 Chrome 中管理同步。
 
-#### 4. 第三方服务
-- 本扩展会调用您配置的AI服务（如文心一言、通义千问等）
-- 对于第三方AI服务的数据处理，请参考相应服务的隐私政策
+对话保留在当前网页的内存中，用于继续追问；不跨设备同步，刷新或关闭页面后不保留。停止或连接中断时，已收到的回答保留在当前会话中。
 
-#### 5. 数据安全
-我们采取以下措施保护您的数据：
-- 使用安全的数据存储方式
-- 仅在必要时访问剪贴板
-- 不收集任何非必要的个人信息
+## 深读下载入口
 
-#### 6. 您的权利
-您有权：
-- 随时查看和修改您的设置
-- 清除存储的所有数据
-- 卸载扩展并删除所有相关数据
+插件面板提供同一作者制作的「深读」iPhone App 介绍。二维码图片随扩展打包，从本地加载。只有你点击下载链接或用手机扫码时，才会打开 Apple App Store，后续访问适用 Apple 的数据政策。
 
-#### 7. 政策更新
-我们保留更新本隐私政策的权利。更新后的政策将在扩展更新时生效。
+面板推荐可以隐藏，关闭偏好仅保存在当前浏览器的 `chrome.storage.local`；设置页「关于」仍可找到下载入口。本入口不附带用户标识、阅读内容或追踪参数。
 
-#### 8. 联系我们
-如有任何问题或建议，请通过GitHub Issues联系我们。
+## 权限与渲染
 
-## English Version
+- `storage`：保存和同步上述配置，以及保存本机推荐关闭偏好。
+- `activeTab` 和微信读书页面匹配：提供阅读页面内的助手功能。
+- AI 域名权限：直接向所选服务发送请求和验证连接。
+- AI 回答经过 HTML 清洗；禁止脚本、事件属性、危险链接及自动加载的远程图片。
 
-### WeRead Assistant Privacy Policy
+## 用户控制与联系
 
-Last Updated: March 2024
+你可以修改或删除 API Key、管理 Chrome 同步、隐藏推荐，或停用和卸载扩展。深读 App 的数据与本插件独立，不会因打开下载入口而转移阅读记录或密钥。
 
-Thank you for using WeRead Assistant. This privacy policy explains how we collect, use, and protect your personal information.
-
-#### 1. Information Collection
-We only collect:
-- Text content you select on WeRead website
-- Your AI service provider configurations (e.g., API keys)
-- Your preference settings (e.g., UI theme, shortcuts)
-
-#### 2. Information Usage
-We use the collected information only for:
-- Providing core features like text explanation and content digestion
-- Saving your personalized settings
-- Improving extension functionality and user experience
-
-#### 3. Information Storage
-- All data is stored locally in your browser
-- Sensitive information like API keys is stored using browser's secure storage
-- We do not upload any data to our servers
-
-#### 4. Third-party Services
-- This extension calls AI services you configure (e.g., Wenxin, Qianwen)
-- For third-party AI services' data processing, please refer to their respective privacy policies
-
-#### 5. Data Security
-We protect your data by:
-- Using secure storage methods
-- Accessing clipboard only when necessary
-- Not collecting any unnecessary personal information
-
-#### 6. Your Rights
-You have the right to:
-- View and modify your settings at any time
-- Clear all stored data
-- Uninstall the extension and delete all related data
-
-#### 7. Policy Updates
-We reserve the right to update this privacy policy. Updated policies will take effect with extension updates.
-
-#### 8. Contact Us
-For any questions or suggestions, please contact us through GitHub Issues. 
+问题反馈：[GitHub Issues](https://github.com/lagrangee/weread_deepreading/issues)；邮箱：lagrangee@gmail.com。

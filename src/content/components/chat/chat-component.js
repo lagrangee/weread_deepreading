@@ -5,6 +5,7 @@
 
 import { CONFIG } from '../../../shared/config.js';
 import { marked } from '../../../lib/marked.min.js';
+import DOMPurify from 'dompurify';
 
 export class ChatComponent {
   /** @type {HTMLElement} 聊天容器元素 */
@@ -48,7 +49,7 @@ export class ChatComponent {
     minimax: 'MiniMax',
     zhipu: '智谱',
     wenxin: '文心一言',
-    deepseek: 'DeepSeek'
+    deepseek: 'DeepSeek',
   };
 
   /**
@@ -85,6 +86,56 @@ export class ChatComponent {
   }
 
   /**
+   * 将选文和模型回答渲染为安全的 Markdown，禁止自动加载远程资源。
+   * @param {string} content - 消息内容
+   * @returns {DocumentFragment} 可直接插入页面的内容
+   * @private
+   */
+  #renderMarkdown(content) {
+    const fragment = DOMPurify.sanitize(marked.parse(String(content ?? '')), {
+      ALLOWED_TAGS: [
+        'p',
+        'br',
+        'strong',
+        'em',
+        's',
+        'del',
+        'blockquote',
+        'pre',
+        'code',
+        'ul',
+        'ol',
+        'li',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'hr',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
+        'a',
+      ],
+      ALLOWED_ATTR: ['href', 'title', 'start', 'align'],
+      ALLOWED_URI_REGEXP: /^(?:https?:\/\/|mailto:)/i,
+      ALLOW_DATA_ATTR: false,
+      ALLOW_ARIA_ATTR: false,
+      RETURN_DOM_FRAGMENT: true,
+    });
+
+    fragment.querySelectorAll('a[href]').forEach(link => {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    });
+    return fragment;
+  }
+
+  /**
    * 绑定事件处理
    * @private
    */
@@ -111,7 +162,8 @@ export class ChatComponent {
     this.#newContentIndicator.innerHTML = `
       <button class="scroll-to-bottom-btn" title="滚动到底部">
         <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     `;
@@ -248,7 +300,7 @@ export class ChatComponent {
       messageElement.classList.add(...type.split(' ').filter(c => c.trim()));
     }
 
-    messageElement.innerHTML = marked.parse(content);
+    messageElement.replaceChildren(this.#renderMarkdown(content));
 
     this.#container.appendChild(messageElement);
     this.scrollToBottom();
@@ -288,22 +340,22 @@ export class ChatComponent {
    * @param {string} chunk - 数据块
    */
   appendStreamChunk(chunk) {
-    if (!this.#currentStreamElement || !chunk) return;
+    if (!this.#currentStreamElement || !chunk) {
+      return;
+    }
 
     this.#accumulatedStreamContent += chunk;
 
     // 渲染Markdown内容
-    const renderedContent = marked.parse(this.#accumulatedStreamContent);
-
-    // 创建临时容器来解析HTML
+    // 清洗后再插入页面，流式中间状态也不能触发资源加载或事件处理。
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = renderedContent;
+    tempDiv.appendChild(this.#renderMarkdown(this.#accumulatedStreamContent));
 
     // 在最后一个文本节点后插入游标
     this.#insertCursorAtEnd(tempDiv);
 
     // 更新实际内容
-    this.#currentStreamElement.innerHTML = tempDiv.innerHTML;
+    this.#currentStreamElement.replaceChildren(...tempDiv.childNodes);
 
     // 智能滚动：只在满足条件时才滚动
     this.#smartScroll();
@@ -316,16 +368,11 @@ export class ChatComponent {
    */
   #insertCursorAtEnd(container) {
     // 查找最后一个文本节点
-    const walker = document.createTreeWalker(
-      container,
-      NodeFilter.SHOW_TEXT,
-      null,
-      false
-    );
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
 
     let lastTextNode = null;
     let node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       // 只考虑非空的文本节点
       if (node.textContent.trim()) {
         lastTextNode = node;
@@ -352,7 +399,9 @@ export class ChatComponent {
    * 完成流式消息显示
    */
   finishStreamMessage() {
-    if (!this.#currentStreamElement) return;
+    if (!this.#currentStreamElement) {
+      return;
+    }
 
     // 移除流式状态
     this.#currentStreamElement.classList.remove('streaming');
@@ -363,7 +412,9 @@ export class ChatComponent {
 
     // 最终渲染完整内容
     if (this.#accumulatedStreamContent) {
-      this.#currentStreamElement.innerHTML = marked.parse(this.#accumulatedStreamContent);
+      this.#currentStreamElement.replaceChildren(
+        this.#renderMarkdown(this.#accumulatedStreamContent)
+      );
     }
 
     // 清理状态
@@ -380,18 +431,23 @@ export class ChatComponent {
    */
   handleStreamError(errorMessage) {
     if (this.#currentStreamElement) {
-      this.#currentStreamElement.classList.remove('streaming');
-      this.#currentStreamElement.classList.add('error');
+      const messageElement = this.#currentStreamElement;
+      const hasContent = this.#accumulatedStreamContent.trim().length > 0;
+      this.finishStreamMessage();
 
-      // 移除游标
-      const cursors = this.#currentStreamElement.querySelectorAll('.stream-cursor');
-      cursors.forEach(cursor => cursor.remove());
+      if (hasContent) {
+        // 中断不能抹掉已经读到的解释；原因作为文本保留在同一条回答中。
+        messageElement.classList.add('error');
+        const errorNote = document.createElement('p');
+        errorNote.className = 'stream-error-note';
+        errorNote.setAttribute('role', 'status');
+        errorNote.textContent = `回答已中断，收到的内容已保留。${errorMessage}`;
+        messageElement.appendChild(errorNote);
+        this.#smartScroll();
+        return;
+      }
 
-      this.#currentStreamElement.remove();
-
-      // 清理状态
-      this.#currentStreamElement = null;
-      this.#accumulatedStreamContent = '';
+      messageElement.remove();
     }
 
     // 也显示一个临时错误提示
@@ -570,4 +626,4 @@ export class ChatComponent {
       this.#boundHandleScroll = null;
     }
   }
-} 
+}
